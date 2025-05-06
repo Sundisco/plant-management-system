@@ -2,8 +2,9 @@ services:
   - type: web
     name: plant-management-backend
     env: python
+    plan: free
     buildCommand: pip install -r backend/requirements.txt
-    startCommand: cd backend && gunicorn app.main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT
+    startCommand: cd backend && gunicorn app.main:app --workers 1 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT
     envVars:
       - key: DATABASE_URL
         fromDatabase:
@@ -19,6 +20,7 @@ services:
   - type: web
     name: plant-management-frontend
     env: node
+    plan: free
     buildCommand: cd frontend && npm install && npm run build
     startCommand: cd frontend && npm run preview
     envVars:
@@ -30,4 +32,5 @@ services:
 databases:
   - name: plant_db
     databaseName: plant_db
-    user: plant_db_user 
+    user: plant_db_user
+    plan: free 
