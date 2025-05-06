@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, BackgroundTasks
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.watering_schedule import WateringSchedule
@@ -50,6 +50,7 @@ app.include_router(
 # Start scheduler on app startup
 @app.on_event("startup")
 async def startup_event():
-    await update_weather_periodic()
+    background_tasks = BackgroundTasks()
+    await update_weather_periodic(background_tasks)
 
 #uvicorn app.main:app --reload
