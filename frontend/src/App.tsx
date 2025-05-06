@@ -1,4 +1,3 @@
-import React from 'react';
 import { Garden } from './components/Garden';
 import { Container, Typography } from '@mui/material';
 
