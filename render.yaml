@@ -4,10 +4,12 @@ services:
     env: python
     plan: free
     buildCommand: pip install -r backend/requirements.txt
-    startCommand: cd backend && python -m uvicorn app:app --host 0.0.0.0 --port $PORT
+    startCommand: cd backend && gunicorn app.main:app --workers 1 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT
     envVars:
       - key: DATABASE_URL
-        value: postgresql://plant_db_user:sfz52a2WmKhXyYueaQaAScA7hspmcHqg@dpg-d0cqkbemcj7s73armf1g-a.frankfurt-postgres.render.com/plant_db
+        fromDatabase:
+          name: plant-management-db
+          property: connectionString
       - key: FRONTEND_URL
         value: https://plant-management-frontend.onrender.com
       - key: SECRET_KEY
@@ -25,10 +27,4 @@ services:
       - key: VITE_API_URL
         value: https://plant-management-backend.onrender.com
       - key: NODE_VERSION
-        value: 18.0.0
-
-databases:
-  - name: plant_db
-    databaseName: plant_db
-    user: plant_db_user
-    plan: free 
+        value: 18.0.0 
