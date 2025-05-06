@@ -4,7 +4,7 @@ services:
     env: python
     plan: free
     buildCommand: pip install -r backend/requirements.txt
-    startCommand: cd backend && gunicorn app.main:app --workers 1 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT
+    startCommand: cd backend && python run_migrations.py && gunicorn app.main:app --workers 1 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT
     envVars:
       - key: DATABASE_URL
         value: postgresql://plant_db_user:sfz52a2WmKhXyYueaQaAScA7hspmcHqg@dpg-d0cqkbemcj7s73armf1g-a.frankfurt-postgres.render.com/plant_db
