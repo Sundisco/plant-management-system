@@ -198,19 +198,18 @@ async def clean_pruning_data(db: Session = Depends(get_db)):
             # Remove duplicates while preserving order
             unique_months = []
             seen = set()
+            
             for month in record.months:
                 if month not in seen:
-                    unique_months.append(month)
                     seen.add(month)
+                    unique_months.append(month)
             
+            # Update the record if changes were made
             if len(unique_months) != len(record.months):
-                print(f"Found duplicates. Updating to: {unique_months}")
+                print(f"Updating months: {unique_months}")
                 record.months = unique_months
-                db.add(record)
-            else:
-                print("No duplicates found")
-
-        db.commit()
+                db.commit()
+        
         return {"message": "Pruning data cleaned successfully"}
     except Exception as e:
         print(f"Error cleaning pruning data: {str(e)}")
