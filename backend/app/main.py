@@ -15,11 +15,12 @@ app = FastAPI()
 
 # Get frontend URL from environment variable, default to localhost for development
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+RENDER_FRONTEND_URL = "https://plant-management-frontend.onrender.com"
 
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[FRONTEND_URL],  # Frontend URL from environment variable
+    allow_origins=[FRONTEND_URL, RENDER_FRONTEND_URL],  # Allow both local and Render frontend URLs
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
