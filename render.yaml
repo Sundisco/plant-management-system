@@ -7,9 +7,7 @@ services:
     startCommand: cd backend && gunicorn app.main:app --workers 1 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT
     envVars:
       - key: DATABASE_URL
-        fromDatabase:
-          name: plant-management-db
-          property: connectionString
+        value: postgresql://plant_db_user:sfz52a2WmKhXyYueaQaAScA7hspmcHqg@dpg-d0cqkbemcj7s73armf1g-a.frankfurt-postgres.render.com/plant_db
       - key: FRONTEND_URL
         value: https://plant-management-frontend.onrender.com
       - key: SECRET_KEY
