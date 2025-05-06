@@ -32,6 +32,10 @@ interface DaySchedule {
   weather_icons: string[];
 }
 
+interface WateringScheduleProps {
+  sectionId?: number;
+}
+
 const sectionColors: Record<string, string> = {
   A: '#60a5fa', // blue-400
   B: '#34d399', // green-400
@@ -41,7 +45,7 @@ const sectionColors: Record<string, string> = {
 
 const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-const WateringSchedule: React.FC = () => {
+const WateringSchedule: React.FC<WateringScheduleProps> = ({ sectionId }) => {
   const [schedule, setSchedule] = useState<DaySchedule[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -69,7 +73,7 @@ const WateringSchedule: React.FC = () => {
       }
     };
     fetchSchedule();
-  }, []);
+  }, [sectionId]);
 
   // Transform data for Recharts
   const chartData = useMemo(() => {

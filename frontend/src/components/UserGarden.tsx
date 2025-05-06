@@ -1,12 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Grid, Button } from '@your-ui-library';
+import { Card, Grid, Button, Typography, Box } from '@mui/material';
+import { Plant } from '../types/Plant';
 
-export const UserGarden: React.FC = () => {
+interface UserGardenProps {
+  userId: number;
+}
+
+export const UserGarden: React.FC<UserGardenProps> = ({ userId }) => {
   const [userPlants, setUserPlants] = useState<Plant[]>([]);
 
   useEffect(() => {
     fetchUserPlants();
-  }, []);
+  }, [userId]);
 
   const fetchUserPlants = async () => {
     try {
@@ -30,19 +35,30 @@ export const UserGarden: React.FC = () => {
   };
 
   return (
-    <div className="user-garden">
-      <h2>Your Garden</h2>
-      <Grid>
+    <Box sx={{ p: 2 }}>
+      <Typography variant="h4" sx={{ mb: 2 }}>Your Garden</Typography>
+      <Grid container spacing={2}>
         {userPlants.map((plant) => (
-          <Card key={plant.id}>
-            <img src={plant.image_url} alt={plant.common_name} />
-            <h3>{plant.common_name}</h3>
-            <Button onClick={() => removePlant(plant.id)}>
-              Remove
-            </Button>
-          </Card>
+          <Grid item xs={12} sm={6} md={4} key={plant.id}>
+            <Card sx={{ p: 2 }}>
+              <img 
+                src={plant.image_url} 
+                alt={plant.common_name} 
+                style={{ width: '100%', height: '200px', objectFit: 'cover' }}
+              />
+              <Typography variant="h6" sx={{ mt: 1 }}>{plant.common_name}</Typography>
+              <Button 
+                variant="contained" 
+                color="error" 
+                onClick={() => removePlant(plant.id)}
+                sx={{ mt: 1 }}
+              >
+                Remove
+              </Button>
+            </Card>
+          </Grid>
         ))}
       </Grid>
-    </div>
+    </Box>
   );
 }; 
