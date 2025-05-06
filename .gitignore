@@ -48,4 +48,6 @@ coverage
 
 # Database
 *.sqlite3
-*.db 
+*.db
+*.sql
+!create_tables.sql 
