@@ -99,10 +99,7 @@ async def get_pruning_schedule(user_id: int, db: Session = Depends(get_db)):
             )
             .all()
         )
-        print(f"\n1. User plants with sections: {[{
-            'plant_id': up.plant_id,
-            'section': up.section
-        } for up in user_plants_with_sections]}")
+        print(f"\n1. User plants with sections: {[{'plant_id': up.plant_id, 'section': up.section} for up in user_plants_with_sections]}")
 
         if not user_plants_with_sections:
             print("No plants with sections found!")
@@ -115,10 +112,7 @@ async def get_pruning_schedule(user_id: int, db: Session = Depends(get_db)):
             .filter(Pruning.plant_id.in_(plant_ids))
             .all()
         )
-        print(f"\n2. Pruning records found: {[{
-            'plant_id': p.plant_id,
-            'months': p.months
-        } for p in pruning_records]}")
+        print(f"\n2. Pruning records found: {[{'plant_id': p.plant_id, 'months': p.months} for p in pruning_records]}")
 
         # 3. Get plant names
         plants = (
