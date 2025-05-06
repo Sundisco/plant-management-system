@@ -9,13 +9,17 @@ from app.routes import plants, plant_guides, watering, pruning, sunlight, attrac
 from app.core.scheduler import update_weather_periodic
 from fastapi.middleware.cors import CORSMiddleware
 from app.routes import watering_schedule
+import os
 
 app = FastAPI()
+
+# Get frontend URL from environment variable, default to localhost for development
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # Frontend URL
+    allow_origins=[FRONTEND_URL],  # Frontend URL from environment variable
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
