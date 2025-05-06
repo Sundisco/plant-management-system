@@ -21,7 +21,7 @@ services:
     name: plant-management-frontend
     env: node
     plan: free
-    buildCommand: cd frontend && npm install && npm run build
+    buildCommand: cd frontend && npm install && npm install -g serve && npm run build
     startCommand: cd frontend && serve -s dist
     envVars:
       - key: VITE_API_URL
