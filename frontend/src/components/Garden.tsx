@@ -11,14 +11,19 @@ import { Plant } from '../types/Plant';
 import WateringSchedule from './WateringSchedule';
 import { PruningSchedule } from './PruningSchedule';
 import { PlantSuggestions } from './PlantSuggestions';
+import { API_ENDPOINTS } from '../config';
 
 interface Section {
   id: string;
   name: string;
 }
 
-export const Garden: React.FC = () => {
-  const [userPlants, setUserPlants] = useState<Plant[]>([]);
+interface GardenProps {
+  userId: number;
+}
+
+export function Garden({ userId }: GardenProps) {
+  const [plants, setPlants] = useState<Plant[]>([]);
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
   const [expandedTypes, setExpandedTypes] = useState<{ [key: string]: boolean }>({});
   const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
@@ -33,56 +38,25 @@ export const Garden: React.FC = () => {
   const GARDEN_DROPPABLE_ID = 'garden';
   const UNASSIGNED_DROPPABLE_ID = 'unassigned';
 
-  const plantsInSection = userPlants.filter(plant => plant.section === selectedSection);
+  const plantsInSection = plants.filter(plant => plant.section === selectedSection);
 
-  const fetchUserGarden = async () => {
-    try {
-      const userId = 1;
-      const response = await fetch(`/api/plants/user/${userId}/plants`);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch garden: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      
-      // Process plants and maintain their sections
-      const processedPlants = data.map((plant: any) => ({
-        id: plant.id,
-        common_name: plant.common_name || 'Unknown Plant',
-        scientific_name: plant.scientific_name || [],
-        other_names: plant.other_names || [],
-        type: plant.type || '',
-        image_url: plant.image_url || '',
-        section: plant.section,
-        in_user_garden: true,
-        description: plant.description,
-        growth_rate: plant.growth_rate,
-        maintenance: plant.maintenance,
-        hardiness_zone: plant.hardiness_zone,
-        cycle: plant.cycle,
-        watering: plant.watering,
-        is_evergreen: plant.is_evergreen,
-        edible_fruit: plant.edible_fruit,
-        attracts: plant.attracts || [],
-        sunlight: plant.sunlight || []
-      }));
-      
-      setUserPlants(processedPlants);
-    } catch (error) {
-      console.error('Error fetching garden:', error);
-    }
-  };
+  useEffect(() => {
+    // Fetch plants for the default user
+    fetch(API_ENDPOINTS.USER_PLANTS(userId))
+      .then(res => res.json())
+      .then(data => setPlants(data))
+      .catch(err => console.error('Error fetching plants:', err));
+  }, [userId]);
 
   const handleRemovePlant = async (plantId: number) => {
     try {
-      const userId = 1;
-      const response = await fetch(`/api/plants/user/${userId}/plants/${plantId}`, {
+      const response = await fetch(`${API_ENDPOINTS.USER_PLANTS(userId)}/${plantId}`, {
         method: 'DELETE',
       });
 
       if (response.ok) {
         // Remove plant from local state
-        setUserPlants(plants => plants.filter(p => p.id !== plantId));
+        setPlants(plants => plants.filter(p => p.id !== plantId));
       } else {
         console.error('Failed to remove plant');
       }
@@ -92,7 +66,7 @@ export const Garden: React.FC = () => {
   };
 
   const handlePlantAdded = (newPlant: Plant) => {
-    setUserPlants(prevPlants => {
+    setPlants(prevPlants => {
       // Check if plant already exists
       const existingPlant = prevPlants.find(p => p.id === newPlant.id);
       if (existingPlant) {
@@ -115,11 +89,7 @@ export const Garden: React.FC = () => {
     });
   };
 
-  useEffect(() => {
-    fetchUserGarden();
-  }, []);
-
-  const unassignedPlants = userPlants.filter(plant => plant.section === null);
+  const unassignedPlants = plants.filter(plant => plant.section === null);
 
   const handleDragEnd = async (result: DropResult) => {
     document.body.style.overflow = 'auto';
@@ -137,8 +107,7 @@ export const Garden: React.FC = () => {
     const newSection = destination.droppableId === UNASSIGNED_DROPPABLE_ID ? null : destination.droppableId;
 
     try {
-      const userId = 1;
-      const response = await fetch(`/api/plants/user/${userId}/plants/${plantId}/section`, {
+      const response = await fetch(API_ENDPOINTS.PLANT_SECTION(userId, plantId), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -151,7 +120,7 @@ export const Garden: React.FC = () => {
       }
 
       // Update local state immediately
-      setUserPlants(prevPlants => 
+      setPlants(prevPlants => 
         prevPlants.map(p => 
           p.id === plantId 
             ? { ...p, section: newSection }
@@ -162,12 +131,12 @@ export const Garden: React.FC = () => {
     } catch (error) {
       console.error('Error updating plant section:', error);
       // On error, refresh the entire garden data
-      await fetchUserGarden();
+      await fetch(API_ENDPOINTS.USER_PLANTS(userId));
     }
   };
 
   // Group plants by type
-  const plantsByType = userPlants.reduce((acc, plant) => {
+  const plantsByType = plants.reduce((acc, plant) => {
     const type = plant.type || 'Other';
     if (!acc[type]) {
       acc[type] = [];
@@ -797,7 +766,7 @@ export const Garden: React.FC = () => {
           height: '100%',
           overflow: 'hidden' // Contain scrolling
         }}>
-          <PruningSchedule selectedSection={selectedSection} userPlants={userPlants} />
+          <PruningSchedule selectedSection={selectedSection} userPlants={plants} />
           <PlantSuggestions selectedSection={selectedSection} />
         </Box>
       </DragDropContext>
@@ -1005,4 +974,4 @@ export const Garden: React.FC = () => {
       </Dialog>
     </Box>
   );
-}; 
+} 
