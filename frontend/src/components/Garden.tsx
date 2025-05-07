@@ -19,10 +19,10 @@ interface Section {
 }
 
 interface GardenProps {
-  userId: number;
+  userId?: number;
 }
 
-export function Garden({ userId }: GardenProps) {
+export function Garden({ userId = 1 }: GardenProps) {
   const [plants, setPlants] = useState<Plant[]>([]);
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
   const [expandedTypes, setExpandedTypes] = useState<{ [key: string]: boolean }>({});
