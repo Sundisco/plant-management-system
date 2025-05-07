@@ -18,6 +18,8 @@ from app.schemas.plant_guides import PlantGuide
 from app.services import plant_guides as guide_service
 from app.models.user_plants import UserPlant
 from sqlalchemy import Text
+import threading
+from app.scripts.initialize_watering_schedules import sync_watering_schedules
 
 router = APIRouter()
 
@@ -150,6 +152,9 @@ def add_plant_to_garden(
     # Get the full plant information
     plant = db.query(DBPlant).filter(DBPlant.id == plant_id).first()
     
+    # Trigger watering schedule sync in background
+    threading.Thread(target=sync_watering_schedules).start()
+
     return {
         "id": plant.id,
         "common_name": plant.common_name,
@@ -266,6 +271,10 @@ def remove_plant_from_garden(
     
     db.delete(user_plant)
     db.commit()
+
+    # Trigger watering schedule sync in background
+    threading.Thread(target=sync_watering_schedules).start()
+
     return {"status": "success"}
 
 @router.get("/basic-search")  # New URL path
