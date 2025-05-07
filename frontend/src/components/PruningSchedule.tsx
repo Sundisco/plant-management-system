@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Paper, Typography, Tooltip, CircularProgress, Table, TableBody, TableCell, TableHead, TableRow, Select, MenuItem } from '@mui/material';
 import { Plant } from '../types/Plant';
+import { API_ENDPOINTS } from '../config';
 
 interface PruningScheduleProps {
   selectedSection: string | null;
@@ -81,7 +82,7 @@ export const PruningSchedule: React.FC<PruningScheduleProps> = ({ selectedSectio
       try {
         setLoading(true);
         const userId = 1;
-        const response = await fetch(`/api/pruning/schedule/${userId}`);
+        const response = await fetch(API_ENDPOINTS.PRUNING);
         const data = await response.json();
         setPruningData(data.pruning_schedule);
         setError(null);
