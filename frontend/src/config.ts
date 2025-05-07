@@ -7,6 +7,6 @@ export const API_ENDPOINTS = {
   ADD_PLANT: (userId: number, plantId: number) => `${baseUrl}/api/plants/user/${userId}/plants/${plantId}`,
   PLANT_SECTION: (userId: number, plantId: number) => `${baseUrl}/api/plants/user/${userId}/plants/${plantId}/section`,
   WATERING_SCHEDULE: (userId: number) => `${baseUrl}/api/${userId}`,
-  PRUNING: `${baseUrl}/api/pruning`,
+  PRUNING: (userId: number) => `${baseUrl}/api/pruning/schedule/${userId}`,
   WEATHER: `${baseUrl}/api/weather`,
 }; 

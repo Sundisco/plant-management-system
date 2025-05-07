@@ -82,8 +82,8 @@ export const PruningSchedule: React.FC<PruningScheduleProps> = ({ selectedSectio
       try {
         setLoading(true);
         const userId = 1;
-        const response = await fetch(API_ENDPOINTS.PRUNING);
-        const data = await response.json();
+        const pruningResponse = await fetch(API_ENDPOINTS.PRUNING(userId));
+        const data = await pruningResponse.json();
         setPruningData(data.pruning_schedule);
         setError(null);
       } catch (err) {
