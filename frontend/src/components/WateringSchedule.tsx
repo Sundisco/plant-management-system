@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import { format } from 'date-fns';
+import { API_ENDPOINTS } from '../config';
 
 interface Plant {
   plant_id: number;
@@ -55,7 +56,8 @@ const WateringSchedule: React.FC<WateringScheduleProps> = ({ sectionId }) => {
   useEffect(() => {
     const fetchSchedule = async () => {
       try {
-        const response = await fetch('/api/1');
+        const userId = 1; // Default user ID
+        const response = await fetch(API_ENDPOINTS.WATERING_SCHEDULE(userId));
         if (!response.ok) {
           const errorData = await response.json().catch(() => null);
           throw new Error(errorData?.detail || `Failed to fetch watering schedule: ${response.status}`);
