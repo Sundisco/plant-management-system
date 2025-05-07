@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Grid, Button, Typography, Box } from '@mui/material';
 import { Plant } from '../types/Plant';
+import { API_ENDPOINTS } from '../config';
 
 interface UserGardenProps {
   userId: number;
@@ -15,7 +16,7 @@ export const UserGarden: React.FC<UserGardenProps> = ({ userId }) => {
 
   const fetchUserPlants = async () => {
     try {
-      const response = await fetch(`/api/plants/user/${userId}/plants`);
+      const response = await fetch(API_ENDPOINTS.USER_PLANTS(userId));
       const data = await response.json();
       setUserPlants(data);
     } catch (error) {
@@ -25,7 +26,7 @@ export const UserGarden: React.FC<UserGardenProps> = ({ userId }) => {
 
   const removePlant = async (plantId: number) => {
     try {
-      await fetch(`/api/plants/user/${userId}/plants/${plantId}`, {
+      await fetch(API_ENDPOINTS.ADD_PLANT(userId, plantId), {
         method: 'DELETE',
       });
       fetchUserPlants(); // Refresh the list

@@ -15,6 +15,7 @@ import {
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import { Plant } from '../types/Plant';
+import { API_ENDPOINTS } from '../config';
 
 interface PlantSearchProps {
   onPlantAdded: (plant: Plant) => void;
@@ -30,7 +31,7 @@ export const PlantSearch: React.FC<PlantSearchProps> = ({ onPlantAdded }) => {
     if (!searchTerm.trim()) return;
 
     try {
-      const response = await fetch(`/api/plants/search?query=${encodeURIComponent(searchTerm)}`);
+      const response = await fetch(API_ENDPOINTS.PLANTS_SEARCH + `?query=${encodeURIComponent(searchTerm)}`);
       if (!response.ok) throw new Error('Search failed');
       
       const data = await response.json();
@@ -44,7 +45,7 @@ export const PlantSearch: React.FC<PlantSearchProps> = ({ onPlantAdded }) => {
   const handleAddPlant = async (plant: Plant) => {
     try {
       const userId = 1; // Replace with actual user ID
-      const response = await fetch(`/api/plants/user/${userId}/plants/${plant.id}`, {
+      const response = await fetch(API_ENDPOINTS.ADD_PLANT(userId, plant.id), {
         method: 'POST',
       });
 
