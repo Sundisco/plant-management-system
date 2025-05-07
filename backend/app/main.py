@@ -10,6 +10,7 @@ from app.core.scheduler import update_weather_periodic
 from fastapi.middleware.cors import CORSMiddleware
 from app.routes import watering_schedule
 import os
+import asyncio
 
 app = FastAPI()
 
@@ -52,6 +53,7 @@ app.include_router(
 @app.on_event("startup")
 async def startup_event():
     background_tasks = BackgroundTasks()
-    await update_weather_periodic(background_tasks)
+    # Schedule the weather update as a background task so it doesn't block startup
+    asyncio.create_task(update_weather_periodic(background_tasks))
 
 #uvicorn app.main:app --reload
