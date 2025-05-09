@@ -79,6 +79,13 @@ async def startup_event():
         # Don't raise the exception, allow the app to start even if weather updates fail
         pass
 
+@app.on_event("startup")
+async def list_routes_on_startup():
+    print("=== Registered Routes ===")
+    for route in app.routes:
+        print(f"{route.path} [{','.join(route.methods)}]")
+    print("=========================")
+
 # Add health check endpoint
 @app.get("/health")
 async def health_check():
