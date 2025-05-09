@@ -182,72 +182,86 @@ def get_user_plants(
     """
     Get all plants in user's garden with their sections
     """
-    print(f"Fetching plants for user {user_id}")
-    
-    # Query user_plants first to get sections
-    user_plants_dict = {
-        up.plant_id: up.section 
-        for up in db.query(UserPlant)
-        .filter(UserPlant.user_id == user_id)
-        .all()
-    }
-    
-    print(f"User plants sections: {user_plants_dict}")  # Debug log
-    
-    # Get the full plant information for these plants with their relationships
-    plants = (
-        db.query(DBPlant)
-        .filter(DBPlant.id.in_(user_plants_dict.keys()))
-        .options(
-            joinedload(DBPlant.attracts),
-            joinedload(DBPlant.sunlight_info)
-        )
-        .all()
-    )
-    
-    print(f"Number of plants found: {len(plants)}")  # Debug log
-    
-    # Combine plant info with sections
-    result = []
-    for plant in plants:
-        section = user_plants_dict.get(plant.id)
-        print(f"\nProcessing plant {plant.id} ({plant.common_name})")  # Debug log
-        print(f"Section: {section}")  # Debug log
+    try:
+        print(f"Fetching plants for user {user_id}")
         
-        # Debug attracts data
-        print(f"Raw attracts data: {plant.attracts}")  # Debug log
-        attracts = [a.species for a in plant.attracts] if plant.attracts else []
-        print(f"Processed attracts data: {attracts}")  # Debug log
-        
-        # Debug sunlight data
-        print(f"Raw sunlight data: {plant.sunlight_info}")  # Debug log
-        sunlight = [s.condition for s in plant.sunlight_info] if plant.sunlight_info else []
-        print(f"Processed sunlight data: {sunlight}")  # Debug log
-        
-        plant_data = {
-            "id": plant.id,
-            "common_name": plant.common_name,
-            "scientific_name": plant.scientific_name or [],
-            "other_names": plant.other_names or [],
-            "family": plant.family,
-            "type": plant.type,
-            "cycle": plant.cycle,
-            "watering": plant.watering,
-            "image_url": plant.image_url,
-            "description": plant.description,
-            "is_evergreen": plant.is_evergreen,
-            "growth_rate": plant.growth_rate,
-            "maintenance": plant.maintenance,
-            "hardiness_zone": plant.hardiness_zone,
-            "edible_fruit": plant.edible_fruit,
-            "section": section,
-            "attracts": attracts,
-            "sunlight": sunlight
+        # Query user_plants first to get sections
+        user_plants_dict = {
+            up.plant_id: up.section 
+            for up in db.query(UserPlant)
+            .filter(UserPlant.user_id == user_id)
+            .all()
         }
-        print(f"Final plant data: {plant_data}")  # Debug log
-        result.append(plant_data)
-    
-    return result
+        
+        print(f"User plants sections: {user_plants_dict}")  # Debug log
+        
+        if not user_plants_dict:
+            print("No plants found for user")
+            return []
+        
+        # Get the full plant information for these plants with their relationships
+        plants = (
+            db.query(DBPlant)
+            .filter(DBPlant.id.in_(user_plants_dict.keys()))
+            .options(
+                joinedload(DBPlant.attracts),
+                joinedload(DBPlant.sunlight_info)
+            )
+            .all()
+        )
+        
+        print(f"Number of plants found: {len(plants)}")  # Debug log
+        
+        # Combine plant info with sections
+        result = []
+        for plant in plants:
+            try:
+                section = user_plants_dict.get(plant.id)
+                print(f"\nProcessing plant {plant.id} ({plant.common_name})")  # Debug log
+                print(f"Section: {section}")  # Debug log
+                
+                # Debug attracts data
+                print(f"Raw attracts data: {plant.attracts}")  # Debug log
+                attracts = [a.species for a in plant.attracts] if plant.attracts else []
+                print(f"Processed attracts data: {attracts}")  # Debug log
+                
+                # Debug sunlight data
+                print(f"Raw sunlight data: {plant.sunlight_info}")  # Debug log
+                sunlight = [s.condition for s in plant.sunlight_info] if plant.sunlight_info else []
+                print(f"Processed sunlight data: {sunlight}")  # Debug log
+                
+                plant_data = {
+                    "id": plant.id,
+                    "common_name": plant.common_name,
+                    "scientific_name": plant.scientific_name or [],
+                    "other_names": plant.other_names or [],
+                    "family": plant.family,
+                    "type": plant.type,
+                    "cycle": plant.cycle,
+                    "watering": plant.watering,
+                    "image_url": plant.image_url,
+                    "description": plant.description,
+                    "is_evergreen": plant.is_evergreen,
+                    "growth_rate": plant.growth_rate,
+                    "maintenance": plant.maintenance,
+                    "hardiness_zone": plant.hardiness_zone,
+                    "edible_fruit": plant.edible_fruit,
+                    "section": section,
+                    "attracts": attracts,
+                    "sunlight": sunlight
+                }
+                print(f"Final plant data: {plant_data}")  # Debug log
+                result.append(plant_data)
+            except Exception as e:
+                print(f"Error processing plant {plant.id}: {str(e)}")
+                continue
+        
+        return result
+    except Exception as e:
+        print(f"Error in get_user_plants: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.delete("/user/{user_id}/plants/{plant_id}")
 def remove_plant_from_garden(
