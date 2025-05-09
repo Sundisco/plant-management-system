@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, BackgroundTasks
+from fastapi import FastAPI, Depends, BackgroundTasks, Request
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.watering_schedule import WateringSchedule
@@ -8,26 +8,39 @@ from app.routes import plants, plant_guides, watering, pruning, sunlight, attrac
 # from app.routes import plant_guides
 from app.core.scheduler import update_weather_periodic
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from app.routes import watering_schedule
 import os
 import asyncio
 
 app = FastAPI()
 
-# Get frontend URL from environment variable, default to localhost for development
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
-RENDER_FRONTEND_URL = "https://plant-management-frontend.onrender.com"
+# Define allowed origins
+ALLOWED_ORIGINS = [
+    "http://localhost:5173",  # Local development
+    "https://plant-management-frontend.onrender.com",  # Production frontend
+]
 
-# Add CORS middleware with more permissive settings
+# Add CORS middleware with explicit configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins during development
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
     expose_headers=["*"],
     max_age=3600,
 )
+
+# Add middleware to handle CORS preflight requests
+@app.middleware("http")
+async def add_cors_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["Access-Control-Allow-Origin"] = "https://plant-management-frontend.onrender.com"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    return response
 
 # Remove the root level route
 # @app.get("/watering-schedule/")
@@ -66,5 +79,18 @@ async def startup_event():
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
+# Add CORS preflight handler
+@app.options("/{full_path:path}")
+async def options_handler():
+    return JSONResponse(
+        content={},
+        headers={
+            "Access-Control-Allow-Origin": "https://plant-management-frontend.onrender.com",
+            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH",
+            "Access-Control-Allow-Headers": "*",
+            "Access-Control-Allow-Credentials": "true",
+        }
+    )
 
 #uvicorn app.main:app --reload

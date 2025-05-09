@@ -1,4 +1,4 @@
-const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const baseUrl = import.meta.env.VITE_API_URL || 'https://plant-management-backend.onrender.com';
 
 export const API_ENDPOINTS = {
   PLANTS: `${baseUrl}/api/plants`,
