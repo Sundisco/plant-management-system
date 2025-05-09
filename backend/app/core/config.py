@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings
 from typing import Optional
+import os
 
 class Settings(BaseSettings):
     # Database settings
@@ -14,6 +15,13 @@ class Settings(BaseSettings):
     @property
     def TEST_DATABASE_URL(self) -> str:
         return f"postgresql://sune:{self.LOCAL_DB_PASSWORD}@localhost:5432/test_db"
+    
+    @property
+    def get_database_url(self) -> str:
+        # Use Render database URL in production, fallback to local database
+        if os.getenv("RENDER"):
+            return self.RENDER_DATABASE_URL or self.DATABASE_URL
+        return self.DATABASE_URL or self.LOCAL_DATABASE_URL
     
     # Weather settings
     WEATHER_LAT: float = 56.0

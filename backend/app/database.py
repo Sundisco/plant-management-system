@@ -6,7 +6,7 @@ from app.core.config import settings
 SQLALCHEMY_DATABASE_URL = "postgresql://sune:Byy44tvfjan1994@localhost/plant_db"
 
 engine = create_engine(
-    settings.DATABASE_URL,
+    settings.get_database_url,
     pool_size=5,
     max_overflow=10,
     pool_timeout=30
