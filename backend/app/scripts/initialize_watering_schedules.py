@@ -9,10 +9,18 @@ from app.services.weather_service import get_weather_forecast, update_weather_fo
 from app.services.watering_adjustment import WateringAdjustment
 from app.core.config import settings
 import logging
+from app.schemas.watering import WateringBase
+from dotenv import load_dotenv
+import os
+import psycopg2
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+load_dotenv()
+
+conn = psycopg2.connect(os.environ["DATABASE_URL"])
 
 def sync_watering_schedules():
     """Sync watering schedules with current user plants, handling additions and removals"""

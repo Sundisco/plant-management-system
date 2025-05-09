@@ -36,7 +36,7 @@ async def get_current_pruning(db: Session = Depends(get_db)):
             'months': p.Pruning.months
         } for p in pruning_data]
 
-        print("\nCurrent pruning data:", result)
+        #print("\nCurrent pruning data:", result)
         return {"pruning_data": result}
     except Exception as e:
         print(f"Error getting current pruning: {str(e)}")
@@ -99,10 +99,10 @@ async def get_pruning_schedule(user_id: int, db: Session = Depends(get_db)):
             )
             .all()
         )
-        print(f"\n1. User plants with sections: {[{'plant_id': up.plant_id, 'section': up.section} for up in user_plants_with_sections]}")
+        #print(f"\n1. User plants with sections: {[{'plant_id': up.plant_id, 'section': up.section} for up in user_plants_with_sections]}")
 
         if not user_plants_with_sections:
-            print("No plants with sections found!")
+            #print("No plants with sections found!")
             return {"pruning_schedule": []}
 
         # 2. Get pruning data
@@ -112,7 +112,7 @@ async def get_pruning_schedule(user_id: int, db: Session = Depends(get_db)):
             .filter(Pruning.plant_id.in_(plant_ids))
             .all()
         )
-        print(f"\n2. Pruning records found: {[{'plant_id': p.plant_id, 'months': p.months} for p in pruning_records]}")
+        #print(f"\n2. Pruning records found: {[{'plant_id': p.plant_id, 'months': p.months} for p in pruning_records]}")
 
         # 3. Get plant names
         plants = (
@@ -121,7 +121,7 @@ async def get_pruning_schedule(user_id: int, db: Session = Depends(get_db)):
             .all()
         )
         plant_names = {p.id: p.common_name for p in plants}
-        print(f"\n3. Plant names: {plant_names}")
+        #print(f"\n3. Plant names: {plant_names}")
 
         # 4. Process data by section
         schedule_data = {}
@@ -132,7 +132,7 @@ async def get_pruning_schedule(user_id: int, db: Session = Depends(get_db)):
         for up in user_plants_with_sections:
             section_plant_map[up.section].append(up.plant_id)
         
-        print(f"\n4. Section to plant mapping: {section_plant_map}")
+        #print(f"\n4. Section to plant mapping: {section_plant_map}")
 
         # Process each section
         for section, plant_list in section_plant_map.items():
@@ -141,12 +141,12 @@ async def get_pruning_schedule(user_id: int, db: Session = Depends(get_db)):
             
             for pruning in pruning_records:
                 if pruning.plant_id in plant_list:
-                    print(f"\nProcessing plant {pruning.plant_id} in section {section}")
-                    print(f"Original months: {pruning.months}")
+                    #print(f"\nProcessing plant {pruning.plant_id} in section {section}")
+                    #print(f"Original months: {pruning.months}")
                     
                     # Convert month names to numbers
                     month_numbers = [month_to_number[month] for month in pruning.months]
-                    print(f"Converted to numbers: {month_numbers}")
+                    #print(f"Converted to numbers: {month_numbers}")
                     
                     for month_num in month_numbers:
                         if month_num not in schedule_data[section]:
@@ -170,7 +170,7 @@ async def get_pruning_schedule(user_id: int, db: Session = Depends(get_db)):
                 }
                 result.append(section_data)
 
-        print("\n5. Final result:", result)
+        #print("\n5. Final result:", result)
         return {"pruning_schedule": result}
 
     except Exception as e:
@@ -180,14 +180,14 @@ async def get_pruning_schedule(user_id: int, db: Session = Depends(get_db)):
 @router.post("/clean-pruning-data")
 async def clean_pruning_data(db: Session = Depends(get_db)):
     try:
-        print("\n=== Cleaning pruning data ===")
+        #print("\n=== Cleaning pruning data ===")
         
         # Get all pruning records
         pruning_records = db.query(Pruning).all()
         
         for record in pruning_records:
-            print(f"\nChecking Plant ID: {record.plant_id}")
-            print(f"Original months: {record.months}")
+            #print(f"\nChecking Plant ID: {record.plant_id}")
+            #print(f"Original months: {record.months}")
             
             # Remove duplicates while preserving order
             unique_months = []
@@ -200,7 +200,7 @@ async def clean_pruning_data(db: Session = Depends(get_db)):
             
             # Update the record if changes were made
             if len(unique_months) != len(record.months):
-                print(f"Updating months: {unique_months}")
+                #print(f"Updating months: {unique_months}")
                 record.months = unique_months
                 db.commit()
         
@@ -220,7 +220,7 @@ async def create_test_pruning_data(db: Session = Depends(get_db)):
             UserPlant.section.isnot(None)
         ).all()
         
-        print(f"\nFound {len(user_plants)} plants with sections")
+        #print(f"\nFound {len(user_plants)} plants with sections")
         
         created_data = []
         for user_plant in user_plants:
@@ -237,7 +237,7 @@ async def create_test_pruning_data(db: Session = Depends(get_db)):
             months = base_months[len(created_data) % 3]
             
             if existing:
-                print(f"Updating existing pruning data for plant {user_plant.plant_id}")
+                #print(f"Updating existing pruning data for plant {user_plant.plant_id}")
                 existing.months = months
                 db.add(existing)
             else:
@@ -257,16 +257,16 @@ async def create_test_pruning_data(db: Session = Depends(get_db)):
             })
 
         db.commit()
-        print("\nCreated/updated pruning data:", created_data)
+        #print("\nCreated/updated pruning data:", created_data)
         return {"message": f"Pruning data updated for plants: {created_data}"}
     except Exception as e:
-        print(f"Error creating test data: {str(e)}")
+        #print(f"Error creating test data: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/setup-garden-pruning")
 async def setup_garden_pruning(db: Session = Depends(get_db)):
     try:
-        print("\n=== Setting up pruning schedules for garden plants ===")
+        #print("\n=== Setting up pruning schedules for garden plants ===")
         
         # Get all plants in user's garden that have sections
         user_plants = (
@@ -279,7 +279,7 @@ async def setup_garden_pruning(db: Session = Depends(get_db)):
             .all()
         )
         
-        print(f"\nFound {len(user_plants)} plants with sections")
+        #print(f"\nFound {len(user_plants)} plants with sections")
         
         # Define pruning schedules based on plant type
         pruning_schedules = {
@@ -294,8 +294,8 @@ async def setup_garden_pruning(db: Session = Depends(get_db)):
 
         updated_data = []
         for user_plant, plant in user_plants:
-            print(f"\nProcessing plant: {plant.common_name} (Type: {plant.type})")
-            print(f"Section: {user_plant.section}")
+            #print(f"\nProcessing plant: {plant.common_name} (Type: {plant.type})")
+            #print(f"Section: {user_plant.section}")
             
             # Determine pruning schedule based on plant type
             plant_type = plant.type.lower() if plant.type else 'default'
