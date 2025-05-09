@@ -12,6 +12,11 @@ from fastapi.responses import JSONResponse
 from app.routes import watering_schedule
 import os
 import asyncio
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
@@ -31,18 +36,6 @@ app.add_middleware(
     expose_headers=["*"],
     max_age=3600,
 )
-
-# Add middleware to handle CORS headers
-@app.middleware("http")
-async def add_cors_headers(request: Request, call_next):
-    response = await call_next(request)
-    origin = request.headers.get("origin")
-    if origin in ALLOWED_ORIGINS:
-        response.headers["Access-Control-Allow-Origin"] = origin
-        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
-        response.headers["Access-Control-Allow-Headers"] = "*"
-        response.headers["Access-Control-Allow-Credentials"] = "true"
-    return response
 
 # Remove the root level route
 # @app.get("/watering-schedule/")
@@ -66,14 +59,23 @@ app.include_router(
     tags=["weather"]
 )
 
+# Add root path handler
+@app.get("/")
+async def root():
+    return {"message": "Plant Management API", "status": "healthy"}
+
 # Start scheduler on app startup
 @app.on_event("startup")
 async def startup_event():
     try:
+        logger.info("Starting application...")
         # Create a background task for weather updates without blocking
-        asyncio.create_task(update_weather_periodic(BackgroundTasks()))
+        task = asyncio.create_task(update_weather_periodic(BackgroundTasks()))
+        # Add error handling for the task
+        task.add_done_callback(lambda t: logger.error(f"Weather update task failed: {t.exception()}") if t.exception() else None)
+        logger.info("Application started successfully")
     except Exception as e:
-        print(f"Error during startup: {str(e)}")
+        logger.error(f"Error during startup: {str(e)}")
         # Don't raise the exception, allow the app to start even if weather updates fail
         pass
 
@@ -81,22 +83,5 @@ async def startup_event():
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
-
-# Add CORS preflight handler
-@app.options("/{full_path:path}")
-async def options_handler(request: Request):
-    origin = request.headers.get("origin")
-    if origin in ALLOWED_ORIGINS:
-        return JSONResponse(
-            content={},
-            headers={
-                "Access-Control-Allow-Origin": origin,
-                "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH",
-                "Access-Control-Allow-Headers": "*",
-                "Access-Control-Allow-Credentials": "true",
-                "Access-Control-Max-Age": "3600",
-            }
-        )
-    return JSONResponse(content={})
 
 #uvicorn app.main:app --reload
