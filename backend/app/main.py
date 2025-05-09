@@ -52,8 +52,17 @@ app.include_router(
 # Start scheduler on app startup
 @app.on_event("startup")
 async def startup_event():
-    background_tasks = BackgroundTasks()
-    # Schedule the weather update as a background task so it doesn't block startup
-    asyncio.create_task(update_weather_periodic(background_tasks))
+    try:
+        # Create a background task for weather updates without blocking
+        asyncio.create_task(update_weather_periodic(BackgroundTasks()))
+    except Exception as e:
+        print(f"Error during startup: {str(e)}")
+        # Don't raise the exception, allow the app to start even if weather updates fail
+        pass
+
+# Add health check endpoint
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy"}
 
 #uvicorn app.main:app --reload
