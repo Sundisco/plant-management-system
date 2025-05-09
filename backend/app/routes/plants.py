@@ -177,14 +177,13 @@ def add_plant_to_garden(
 @router.get("/user/{user_id}/plants", response_model=List[PlantResponse])
 def get_user_plants(
     user_id: int,
+    limit: int = Query(10, ge=1, le=50),
     db: Session = Depends(get_db)
 ):
     """
     Get all plants in user's garden with their sections
     """
     try:
-        print(f"Fetching plants for user {user_id}")
-        
         # Query user_plants first to get sections
         user_plants_dict = {
             up.plant_id: up.section 
@@ -193,10 +192,7 @@ def get_user_plants(
             .all()
         }
         
-        print(f"User plants sections: {user_plants_dict}")  # Debug log
-        
         if not user_plants_dict:
-            print("No plants found for user")
             return []
         
         # Get the full plant information for these plants with their relationships
@@ -207,29 +203,17 @@ def get_user_plants(
                 joinedload(DBPlant.attracts),
                 joinedload(DBPlant.sunlight_info)
             )
+            .limit(limit)
             .all()
         )
-        
-        print(f"Number of plants found: {len(plants)}")  # Debug log
         
         # Combine plant info with sections
         result = []
         for plant in plants:
             try:
                 section = user_plants_dict.get(plant.id)
-                print(f"\nProcessing plant {plant.id} ({plant.common_name})")  # Debug log
-                print(f"Section: {section}")  # Debug log
-                
-                # Debug attracts data
-                print(f"Raw attracts data: {plant.attracts}")  # Debug log
                 attracts = [a.species for a in plant.attracts] if plant.attracts else []
-                print(f"Processed attracts data: {attracts}")  # Debug log
-                
-                # Debug sunlight data
-                print(f"Raw sunlight data: {plant.sunlight_info}")  # Debug log
                 sunlight = [s.condition for s in plant.sunlight_info] if plant.sunlight_info else []
-                print(f"Processed sunlight data: {sunlight}")  # Debug log
-                
                 plant_data = {
                     "id": plant.id,
                     "common_name": plant.common_name,
@@ -250,15 +234,11 @@ def get_user_plants(
                     "attracts": attracts,
                     "sunlight": sunlight
                 }
-                print(f"Final plant data: {plant_data}")  # Debug log
                 result.append(plant_data)
             except Exception as e:
-                print(f"Error processing plant {plant.id}: {str(e)}")
                 continue
-        
         return result
     except Exception as e:
-        print(f"Error in get_user_plants: {str(e)}")
         import traceback
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
