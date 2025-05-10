@@ -19,9 +19,9 @@ def upgrade():
     op.create_index('ix_plants_common_name', 'plants', ['common_name'])
     op.create_index('ix_plants_type', 'plants', ['type'])
     
-    # Create GIN indexes with array_ops operator class for array fields
-    op.execute('CREATE INDEX ix_plants_scientific_name ON plants USING gin (scientific_name array_ops)')
-    op.execute('CREATE INDEX ix_plants_other_names ON plants USING gin (other_names array_ops)')
+    # Create GIN indexes with varchar_ops operator class for VARCHAR arrays
+    op.execute('CREATE INDEX ix_plants_scientific_name ON plants USING gin (scientific_name varchar_ops)')
+    op.execute('CREATE INDEX ix_plants_other_names ON plants USING gin (other_names varchar_ops)')
     
     # Add indexes for user_plants table
     op.create_index('ix_user_plants_user_id', 'user_plants', ['user_id'])
