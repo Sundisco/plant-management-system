@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.exc import IntegrityError
 from app.models.watering_schedule import WateringSchedule
 from app.schemas.watering_schedule import WateringScheduleCreate, WateringScheduleUpdate
@@ -15,7 +15,7 @@ from app.core.config import settings
 import logging
 import asyncio
 import traceback
-from sqlalchemy.orm import joinedload
+from typing import List, Optional
 
 # Set up logging
 logging.basicConfig(
@@ -99,276 +99,99 @@ def create_watering_schedule(db: Session, user_id: int, plant_id: int):
         logger.error(f"Error creating watering schedule: {str(e)}")
         raise
 
-def get_user_watering_schedule(db: Session, user_id: int):
-    """Get watering schedule for a user with weather adjustments"""
+def get_user_watering_schedule(db: Session, user_id: int) -> List[dict]:
+    """Get watering schedule for all plants of a user"""
     try:
         logger.info(f"Getting watering schedule for user {user_id}")
-        
-        # Check if user exists
-        user = db.query(User).filter(User.id == user_id).first()
-        if not user:
-            logger.error(f"User {user_id} not found")
-            raise ValueError("User not found")
         
         # Get all user plants with their last watering date - optimized query
         user_plants = (
             db.query(UserPlant)
             .filter(UserPlant.user_id == user_id)
             .options(
-                joinedload(UserPlant.plant).joinedload(Plant.watering)  # Eager load plant and watering data
+                joinedload(UserPlant.plant).joinedload(Plant.watering_info)  # Use watering_info instead of watering
             )
             .all()
         )
-        logger.debug(f"Found {len(user_plants)} plants for user")
         
         if not user_plants:
             logger.info(f"No plants found for user {user_id}")
-            return []  # Return empty schedule if no plants
+            return []
         
-        # Update weather forecasts if needed - with timeout
-        if should_update_forecast(db, settings.WEATHER_LOCATION):
-            logger.info("Updating weather forecasts")
-            try:
-                # Set a timeout for weather update
-                async def update_with_timeout():
-                    try:
-                        async with asyncio.timeout(10):  # 10 second timeout
-                            await update_weather_forecasts(db, settings.WEATHER_LOCATION)
-                    except asyncio.TimeoutError:
-                        logger.error("Weather forecast update timed out")
-                    except Exception as e:
-                        logger.error(f"Error updating weather forecasts: {str(e)}")
-                
-                asyncio.run(update_with_timeout())
-            except Exception as e:
-                logger.error(f"Error in weather update: {str(e)}")
-                # Continue without weather data
-        
-        # Get weather forecast - with timeout
+        # Get weather forecast for next 7 days
         try:
-            async def get_forecast_with_timeout():
-                try:
-                    async with asyncio.timeout(5):  # 5 second timeout
-                        return get_weather_forecast(
-                            db,
-                            settings.WEATHER_LOCATION,
-                            datetime.now(),
-                            datetime.now() + timedelta(days=7)
-                        )
-                except asyncio.TimeoutError:
-                    logger.error("Weather forecast fetch timed out")
-                    return []
-                except Exception as e:
-                    logger.error(f"Error getting weather forecast: {str(e)}")
-                    return []
-            
-            weather_forecasts = asyncio.run(get_forecast_with_timeout())
-            logger.debug(f"Got {len(weather_forecasts)} weather forecasts")
-        except Exception as e:
-            logger.error(f"Error in weather forecast: {str(e)}")
-            weather_forecasts = []  # Continue without weather data
-
-        # Get last watering dates for all plants - optimized query
-        last_watering_dates = {}
-        try:
-            # Get all completed waterings for this user in one query
-            last_waterings = (
-                db.query(WateringSchedule)
-                .filter(
-                    WateringSchedule.user_id == user_id,
-                    WateringSchedule.completed == True
-                )
-                .order_by(WateringSchedule.completion_timestamp.desc())
-                .all()
+            weather_forecast = get_weather_forecast(
+                db,
+                "Denmark",  # Use the configured location
+                datetime.now(),
+                datetime.now() + timedelta(days=7)
             )
-            
-            # Group by plant_id and take the most recent for each
-            for watering in last_waterings:
-                if watering.plant_id not in last_watering_dates:
-                    last_watering_dates[watering.plant_id] = watering.completion_timestamp.date()
         except Exception as e:
-            logger.error(f"Error getting last watering dates: {str(e)}")
-
-        # Generate schedule for each day
-        schedule = []
-        current_date = datetime.now().date()
+            logger.error(f"Error getting weather forecast: {str(e)}")
+            weather_forecast = []  # Continue without weather data
         
-        for i in range(7):
+        # Process each plant
+        schedule = []
+        for user_plant in user_plants:
             try:
-                forecast_date = current_date + timedelta(days=i)
-                day_schedule = {
-                    "date": forecast_date,
-                    "sections": [],
-                    "weather": None,
-                    "weather_icons": []
-                }
+                if not user_plant.plant or not user_plant.plant.watering_info:
+                    logger.warning(f"Missing plant or watering info for user_plant {user_plant.id}")
+                    continue
                 
-                # Get weather for this day
-                day_forecasts = [f for f in weather_forecasts if f.timestamp.date() == forecast_date]
-                if day_forecasts:
-                    forecast = min(day_forecasts, key=lambda x: abs(x.timestamp.hour - 12))
-                    day_schedule["weather"] = {
-                        "temperature": forecast.temperature,
-                        "precipitation": forecast.precipitation,
-                        "wind_speed": forecast.wind_speed
-                    }
-                    
-                    # Add weather icons
-                    if forecast.precipitation >= 5:
-                        day_schedule["weather_icons"].append("🌧")
-                    if forecast.temperature >= 25:
-                        day_schedule["weather_icons"].append("🌡")
-                    if forecast.wind_speed >= 20:
-                        day_schedule["weather_icons"].append("💨")
+                # Get watering info
+                watering_info = user_plant.plant.watering_info
                 
-                # Group plants by section - using already loaded plant data
-                sections = {}
-                for user_plant in user_plants:
-                    try:
-                        plant = user_plant.plant  # Use the eagerly loaded plant
-                        if not plant:
-                            logger.warning(f"Plant {user_plant.plant_id} not found")
-                            continue
-
-                        watering_info = plant.watering  # Use the eagerly loaded watering info
-                        if not watering_info:
-                            logger.warning(f"No watering info found for plant {plant.id}")
-                            continue
-
-                        # Calculate base frequency (adjusted for drought tolerance)
-                        base_frequency = watering_info.frequency_days
-                        if watering_info.drought_tolerant:
-                            base_frequency = int(base_frequency * 1.5)  # Drought tolerant plants can wait 50% longer
-
-                        # Get last watering date
-                        last_watering = last_watering_dates.get(plant.id)
-                        logger.debug(f"Plant {plant.id} ({plant.common_name}):")
-                        logger.debug(f"  Last watering: {last_watering}")
-                        logger.debug(f"  Base frequency: {base_frequency} days")
-                        
-                        # Calculate days since last watering
-                        if last_watering:
-                            days_since_last_watering = (forecast_date - last_watering).days
-                            logger.debug(f"  Days since last watering: {days_since_last_watering}")
-                        else:
-                            # If never watered, assume it needs watering
-                            days_since_last_watering = base_frequency
-                            logger.debug("  Never watered before")
-
-                        # Create base watering requirements
-                        base_watering = WateringBase(
-                            plant_id=plant.id,
-                            frequency_days=base_frequency,
-                            depth_mm=watering_info.depth_mm,
-                            volume_feet=watering_info.volume_feet,
-                            period=watering_info.period,
-                            drought_tolerant=watering_info.drought_tolerant,
-                            soil=watering_info.soil
-                        )
-
-                        # Get weather adjustment
-                        if day_forecasts:
-                            adjustment = WateringAdjustment.calculate_adjustment(base_watering, forecast)
-                            
-                            # Skip if heavy rain is expected
-                            if adjustment["skip_watering"]:
-                                logger.debug("  Skipping due to heavy rain")
-                                continue
-                            
-                            # Adjust frequency based on weather
-                            adjusted_frequency = max(1, base_frequency + adjustment["frequency_adjustment"])
-                            logger.debug(f"  Adjusted frequency: {adjusted_frequency} days")
-                        else:
-                            adjustment = {
-                                "volume_adjustment": 1.0,
-                                "reason": ["No weather forecast available"]
-                            }
-                            adjusted_frequency = base_frequency
-                            logger.debug("  No weather forecast available")
-
-                        # Check if plant needs watering on this day
-                        # A plant needs watering if:
-                        # 1. It has never been watered (last_watering is None)
-                        # 2. The days since last watering equals the frequency (exact day)
-                        # 3. The days since last watering is 1 day past the frequency (slightly overdue)
-                        needs_watering = (
-                            last_watering is None or
-                            days_since_last_watering >= adjusted_frequency
-                        )
-                        
-                        logger.debug(f"  Needs watering: {needs_watering}")
-                        if not needs_watering:
-                            logger.debug("  Skipping - not due for watering")
-                            continue
-
-                        # Calculate next watering date based on the adjusted frequency
-                        next_watering_date = forecast_date + timedelta(days=adjusted_frequency)
-                        logger.debug(f"  Next watering date: {next_watering_date}")
-                        
-                        section = user_plant.section or "Unassigned"  # Default section if none assigned
-                        if section not in sections:
-                            sections[section] = {
-                                "high_need": [],
-                                "medium_need": [],
-                                "low_need": []
-                            }
-                        
-                        # Calculate adjusted volume
-                        adjusted_volume = watering_info.volume_feet * adjustment["volume_adjustment"]
-                        
-                        # Add plant to appropriate need level
-                        plant_data = {
-                            "plant_id": plant.id,
-                            "plant_name": plant.common_name,
-                            "watering_info": watering_info,
-                            "adjusted_volume": adjusted_volume,
-                            "adjustment_reason": adjustment["reason"],
-                            "days_since_last_watering": days_since_last_watering,
-                            "base_frequency": base_frequency,
-                            "adjusted_frequency": adjusted_frequency,
-                            "next_watering_date": next_watering_date.isoformat(),
-                            "last_watering_date": last_watering.isoformat() if last_watering else None
-                        }
-                        
-                        if watering_info.frequency_days <= 2:
-                            sections[section]["high_need"].append(plant_data)
-                        elif watering_info.frequency_days <= 4:
-                            sections[section]["medium_need"].append(plant_data)
-                        else:
-                            sections[section]["low_need"].append(plant_data)
-                    except Exception as e:
-                        logger.error(f"Error processing plant {user_plant.plant_id}: {str(e)}")
-                        continue
+                # Calculate next watering date
+                next_watering = calculate_next_watering(
+                    watering_info,
+                    weather_forecast
+                )
                 
-                # Add sections to day schedule
-                for section, groups in sections.items():
-                    section_schedule = {
-                        "section": section,
-                        "groups": []
-                    }
-                    
-                    # Add each need level group if it has plants
-                    for need_level in ["high_need", "medium_need", "low_need"]:
-                        if groups[need_level]:
-                            section_schedule["groups"].append({
-                                "need_level": need_level.replace("_need", ""),
-                                "plants": groups[need_level],
-                                "total_volume": sum(p["adjusted_volume"] for p in groups[need_level])
-                            })
-                    
-                    if section_schedule["groups"]:
-                        day_schedule["sections"].append(section_schedule)
-                
-                schedule.append(day_schedule)
+                if next_watering:
+                    schedule.append({
+                        "plant_id": user_plant.plant_id,
+                        "plant_name": user_plant.plant.common_name,
+                        "next_watering": next_watering,
+                        "section": user_plant.section
+                    })
             except Exception as e:
-                logger.error(f"Error processing day {i}: {str(e)}")
+                logger.error(f"Error processing plant {user_plant.plant_id}: {str(e)}")
                 continue
         
-        logger.info(f"Generated schedule with {len(schedule)} days")
+        logger.info(f"Generated watering schedule with {len(schedule)} entries")
         return schedule
     except Exception as e:
-        logger.error(f"Error in get_user_watering_schedule: {str(e)}\n{traceback.format_exc()}")
-        raise
+        logger.error(f"Error in get_user_watering_schedule: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating watering schedule: {str(e)}"
+        )
+
+def calculate_next_watering(watering_info: Watering, weather_forecast: List[dict]) -> Optional[datetime]:
+    """Calculate next watering date based on watering info and weather forecast"""
+    try:
+        if not watering_info:
+            return None
+            
+        # Get base watering frequency in days
+        frequency = watering_info.frequency_days
+        
+        # Adjust for weather conditions
+        if weather_forecast:
+            # Check next 3 days of forecast
+            for i in range(min(3, len(weather_forecast))):
+                forecast = weather_forecast[i]
+                if forecast['precipitation'] > 5:  # If significant rain
+                    frequency += 1  # Delay watering by one day
+                if forecast['temperature'] > 25:  # If hot
+                    frequency -= 0.5  # Water more frequently
+        
+        # Calculate next watering date
+        next_watering = datetime.now() + timedelta(days=max(1, frequency))
+        return next_watering
+    except Exception as e:
+        logger.error(f"Error calculating next watering: {str(e)}")
+        return None
 
 def get_schedule(db: Session, schedule_id: int):
     return db.query(WateringSchedule).filter(WateringSchedule.id == schedule_id).first()
