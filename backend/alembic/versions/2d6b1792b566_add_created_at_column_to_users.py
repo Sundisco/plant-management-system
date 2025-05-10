@@ -1,7 +1,7 @@
 """Add created_at column to users
 
 Revision ID: 2d6b1792b566
-Revises: merge_watering_heads_final
+Revises: 5cf44b53f2ea
 Create Date: 2025-05-07 12:12:25.238224
 
 """
@@ -13,7 +13,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision: str = '2d6b1792b566'
-down_revision: Union[str, None] = 'merge_watering_heads_final'
+down_revision: Union[str, None] = '5cf44b53f2ea'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
