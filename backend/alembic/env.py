@@ -27,7 +27,7 @@ if config.config_file_name is not None:
 
 # Set the target_metadata to your Base.metadata
 target_metadata = Base.metadata  # Change this line from None to Base.metadata
-
+##
 # Get the database URL from environment
 database_url = os.getenv("DATABASE_URL")
 if database_url:
