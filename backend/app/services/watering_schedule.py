@@ -15,6 +15,7 @@ from app.core.config import settings
 import logging
 import asyncio
 import traceback
+from sqlalchemy.orm import joinedload
 
 # Set up logging
 logging.basicConfig(
@@ -109,53 +110,81 @@ def get_user_watering_schedule(db: Session, user_id: int):
             logger.error(f"User {user_id} not found")
             raise ValueError("User not found")
         
-        # Get all user plants with their last watering date
-        user_plants = db.query(UserPlant).filter(UserPlant.user_id == user_id).all()
+        # Get all user plants with their last watering date - optimized query
+        user_plants = (
+            db.query(UserPlant)
+            .filter(UserPlant.user_id == user_id)
+            .options(joinedload(UserPlant.plant))  # Eager load plant data
+            .all()
+        )
         logger.debug(f"Found {len(user_plants)} plants for user")
         
         if not user_plants:
             logger.info(f"No plants found for user {user_id}")
             return []  # Return empty schedule if no plants
         
-        # Update weather forecasts if needed
+        # Update weather forecasts if needed - with timeout
         if should_update_forecast(db, settings.WEATHER_LOCATION):
             logger.info("Updating weather forecasts")
             try:
-                asyncio.run(update_weather_forecasts(db, settings.WEATHER_LOCATION))
+                # Set a timeout for weather update
+                async def update_with_timeout():
+                    try:
+                        async with asyncio.timeout(10):  # 10 second timeout
+                            await update_weather_forecasts(db, settings.WEATHER_LOCATION)
+                    except asyncio.TimeoutError:
+                        logger.error("Weather forecast update timed out")
+                    except Exception as e:
+                        logger.error(f"Error updating weather forecasts: {str(e)}")
+                
+                asyncio.run(update_with_timeout())
             except Exception as e:
-                logger.error(f"Error updating weather forecasts: {str(e)}")
+                logger.error(f"Error in weather update: {str(e)}")
                 # Continue without weather data
         
-        # Get weather forecast
+        # Get weather forecast - with timeout
         try:
-            weather_forecasts = get_weather_forecast(
-                db,
-                settings.WEATHER_LOCATION,
-                datetime.now(),
-                datetime.now() + timedelta(days=7)
-            )
+            async def get_forecast_with_timeout():
+                try:
+                    async with asyncio.timeout(5):  # 5 second timeout
+                        return get_weather_forecast(
+                            db,
+                            settings.WEATHER_LOCATION,
+                            datetime.now(),
+                            datetime.now() + timedelta(days=7)
+                        )
+                except asyncio.TimeoutError:
+                    logger.error("Weather forecast fetch timed out")
+                    return []
+                except Exception as e:
+                    logger.error(f"Error getting weather forecast: {str(e)}")
+                    return []
+            
+            weather_forecasts = asyncio.run(get_forecast_with_timeout())
             logger.debug(f"Got {len(weather_forecasts)} weather forecasts")
         except Exception as e:
-            logger.error(f"Error getting weather forecast: {str(e)}")
+            logger.error(f"Error in weather forecast: {str(e)}")
             weather_forecasts = []  # Continue without weather data
 
-        # Get last watering dates for all plants
+        # Get last watering dates for all plants - optimized query
         last_watering_dates = {}
-        for user_plant in user_plants:
-            try:
-                last_watering = db.query(WateringSchedule)\
-                    .filter(
-                        WateringSchedule.user_id == user_id,
-                        WateringSchedule.plant_id == user_plant.plant_id,
-                        WateringSchedule.completed == True
-                    )\
-                    .order_by(WateringSchedule.completion_timestamp.desc())\
-                    .first()
-                
-                last_watering_dates[user_plant.plant_id] = last_watering.completion_timestamp.date() if last_watering else None
-            except Exception as e:
-                logger.error(f"Error getting last watering date for plant {user_plant.plant_id}: {str(e)}")
-                last_watering_dates[user_plant.plant_id] = None
+        try:
+            last_waterings = (
+                db.query(WateringSchedule)
+                .filter(
+                    WateringSchedule.user_id == user_id,
+                    WateringSchedule.completed == True
+                )
+                .order_by(WateringSchedule.completion_timestamp.desc())
+                .all()
+            )
+            
+            # Group by plant_id and take the most recent for each
+            for watering in last_waterings:
+                if watering.plant_id not in last_watering_dates:
+                    last_watering_dates[watering.plant_id] = watering.completion_timestamp.date()
+        except Exception as e:
+            logger.error(f"Error getting last watering dates: {str(e)}")
 
         # Generate schedule for each day
         schedule = []
@@ -189,11 +218,11 @@ def get_user_watering_schedule(db: Session, user_id: int):
                     if forecast.wind_speed >= 20:
                         day_schedule["weather_icons"].append("💨")
                 
-                # Group plants by section
+                # Group plants by section - using already loaded plant data
                 sections = {}
                 for user_plant in user_plants:
                     try:
-                        plant = db.query(Plant).filter(Plant.id == user_plant.plant_id).first()
+                        plant = user_plant.plant  # Use the eagerly loaded plant
                         if not plant:
                             logger.warning(f"Plant {user_plant.plant_id} not found")
                             continue
