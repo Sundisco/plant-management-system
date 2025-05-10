@@ -1,6 +1,9 @@
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
 from app.core.config import settings
+from sqlalchemy import event
+from sqlalchemy.orm import mapper
 import logging
 
 # Set up logging
@@ -24,8 +27,17 @@ except Exception as e:
     logger.error(f"Failed to connect to the database: {str(e)}")
     raise
 
+# Create SessionLocal class
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# Create Base class
 Base = declarative_base()
+
+# Configure mappers
+@event.listens_for(Base.metadata, 'after_create')
+def configure_mappers(target, connection, **kw):
+    """Configure all mappers after tables are created"""
+    mapper.configure_mappers()
 
 def get_db():
     db = SessionLocal()

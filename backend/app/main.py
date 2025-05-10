@@ -4,17 +4,13 @@ from app.database import get_db
 from app.models.watering_schedule import WateringSchedule
 from datetime import date
 from app.routes import plants, plant_guides, watering, pruning, sunlight, attracts, users, watering_schedule, weather_forecast
-# Temporarily comment out plant_guides import
-# from app.routes import plant_guides
 from app.core.scheduler import update_weather_periodic, start_scheduler
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from app.routes import watering_schedule
 import os
 import asyncio
 import logging
 from app.core.config import settings
-from app.api.api_v1.api import api_router
 
 # Set up logging
 logging.basicConfig(
@@ -25,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json"
+    openapi_url="/api/v1/openapi.json"
 )
 
 # Define allowed origins
