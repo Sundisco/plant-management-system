@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from app.database import get_db
 from app.models.plants import Plant as DBPlant
-from sqlalchemy import or_, func
+from sqlalchemy import or_, func, Index, text
 from app.services import plant_service
 from app.schemas.plants import (
     Plant, 
@@ -20,8 +20,32 @@ from app.models.user_plants import UserPlant
 from sqlalchemy import Text
 import threading
 from app.scripts.initialize_watering_schedules import sync_watering_schedules
+from functools import lru_cache
+from datetime import datetime, timedelta
 
 router = APIRouter()
+
+# Cache for user plants (5 minutes TTL)
+user_plants_cache = {}
+CACHE_TTL = 300  # 5 minutes in seconds
+
+def get_cached_user_plants(user_id: int) -> set:
+    """Get user plants from cache or database"""
+    cache_key = f"user_plants_{user_id}"
+    cache_data = user_plants_cache.get(cache_key)
+    
+    if cache_data and (datetime.now() - cache_data['timestamp']).seconds < CACHE_TTL:
+        return cache_data['data']
+    
+    return None
+
+def set_cached_user_plants(user_id: int, plants: set):
+    """Set user plants in cache"""
+    cache_key = f"user_plants_{user_id}"
+    user_plants_cache[cache_key] = {
+        'data': plants,
+        'timestamp': datetime.now()
+    }
 
 @router.get("/search")
 async def search_plants(
@@ -31,7 +55,15 @@ async def search_plants(
 ):
     """Search endpoint that checks common_name, scientific_name, other_names, and type"""
     try:
-        search_query = db.query(DBPlant)
+        # Start with a base query that includes only necessary columns
+        search_query = db.query(
+            DBPlant.id,
+            DBPlant.common_name,
+            DBPlant.scientific_name,
+            DBPlant.other_names,
+            DBPlant.type,
+            DBPlant.image_url
+        )
         
         if query:
             search_term = f"%{query}%"
@@ -45,22 +77,24 @@ async def search_plants(
                 )
             )
         
-        plants = search_query.limit(20).all()
-        
-        # If user_id is provided, get their garden plants
-        user_plants = set()
+        # Get user plants from cache or database
+        user_plants = None
         if user_id:
-            user_plants = {
-                plant_id[0] for plant_id in 
-                db.query(UserPlant.plant_id)
-                .filter(UserPlant.user_id == user_id)
-                .all()
-            }
+            user_plants = get_cached_user_plants(user_id)
+            if user_plants is None:
+                user_plants = {
+                    plant_id[0] for plant_id in 
+                    db.query(UserPlant.plant_id)
+                    .filter(UserPlant.user_id == user_id)
+                    .all()
+                }
+                set_cached_user_plants(user_id, user_plants)
+        
+        # Execute the query with a limit
+        plants = search_query.limit(20).all()
         
         print(f"Query: {query}")
         print(f"Number of plants found: {len(plants)}")
-        if plants:
-            print(f"Sample plant scientific names: {[p.scientific_name for p in plants[:3]]}")
         
         return {
             "items": [
@@ -71,7 +105,7 @@ async def search_plants(
                     "other_names": plant.other_names if plant.other_names else [],
                     "type": plant.type or "",
                     "image_url": plant.image_url,
-                    "in_user_garden": plant.id in user_plants
+                    "in_user_garden": plant.id in user_plants if user_plants else False
                 }
                 for plant in plants
             ]
