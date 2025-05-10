@@ -77,8 +77,8 @@ async def startup_event():
     global scheduler_task
     try:
         logger.info("Starting application...")
-        # Start the scheduler
-        scheduler_task = start_scheduler()
+        # Start the scheduler and await the task
+        scheduler_task = await start_scheduler()
         logger.info("Background tasks started successfully")
     except Exception as e:
         logger.error(f"Error starting background tasks: {str(e)}")
@@ -101,7 +101,9 @@ async def shutdown_event():
     global scheduler_task
     if scheduler_task:
         try:
+            # Cancel the task
             scheduler_task.cancel()
+            # Wait for the task to be cancelled
             await scheduler_task
         except asyncio.CancelledError:
             logger.info("Scheduler task cancelled successfully")
