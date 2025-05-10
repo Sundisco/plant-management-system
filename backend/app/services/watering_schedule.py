@@ -114,7 +114,9 @@ def get_user_watering_schedule(db: Session, user_id: int):
         user_plants = (
             db.query(UserPlant)
             .filter(UserPlant.user_id == user_id)
-            .options(joinedload(UserPlant.plant))  # Eager load plant data
+            .options(
+                joinedload(UserPlant.plant).joinedload(Plant.watering)  # Eager load plant and watering data
+            )
             .all()
         )
         logger.debug(f"Found {len(user_plants)} plants for user")
@@ -169,6 +171,7 @@ def get_user_watering_schedule(db: Session, user_id: int):
         # Get last watering dates for all plants - optimized query
         last_watering_dates = {}
         try:
+            # Get all completed waterings for this user in one query
             last_waterings = (
                 db.query(WateringSchedule)
                 .filter(
@@ -227,7 +230,7 @@ def get_user_watering_schedule(db: Session, user_id: int):
                             logger.warning(f"Plant {user_plant.plant_id} not found")
                             continue
 
-                        watering_info = db.query(Watering).filter(Watering.plant_id == plant.id).first()
+                        watering_info = plant.watering  # Use the eagerly loaded watering info
                         if not watering_info:
                             logger.warning(f"No watering info found for plant {plant.id}")
                             continue
