@@ -18,10 +18,12 @@ class Settings(BaseSettings):
     
     @property
     def get_database_url(self) -> str:
-        # Use Render database URL in production, fallback to local database
-        if os.getenv("RENDER"):
-            return self.RENDER_DATABASE_URL or self.DATABASE_URL
-        return self.DATABASE_URL or self.LOCAL_DATABASE_URL
+        # First try DATABASE_URL, then RENDER_DATABASE_URL, finally fallback to local
+        if self.DATABASE_URL:
+            return self.DATABASE_URL
+        if os.getenv("RENDER") and self.RENDER_DATABASE_URL:
+            return self.RENDER_DATABASE_URL
+        return self.LOCAL_DATABASE_URL
     
     # Weather settings
     WEATHER_LAT: float = 56.0
