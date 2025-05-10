@@ -1,15 +1,15 @@
-"""fix migration chain
+"""final migration
 
-Revision ID: fix_migration_chain
+Revision ID: final_migration
 Revises: 5acd350c893e
-Create Date: 2024-05-10 13:00:00.000000
+Create Date: 2024-05-10 14:00:00.000000
 
 """
 from alembic import op
 import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
-revision = 'fix_migration_chain'
+revision = 'final_migration'
 down_revision = '5acd350c893e'  # This should be your last working migration
 branch_labels = None
 depends_on = None
