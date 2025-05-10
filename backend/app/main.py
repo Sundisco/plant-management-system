@@ -72,7 +72,18 @@ async def startup_event():
         # Create a background task for weather updates without blocking
         task = asyncio.create_task(update_weather_periodic(BackgroundTasks()))
         # Add error handling for the task
-        task.add_done_callback(lambda t: logger.error(f"Weather update task failed: {t.exception()}") if t.exception() else None)
+        def task_done_callback(t):
+            try:
+                exc = t.exception()
+                if exc:
+                    if isinstance(exc, asyncio.CancelledError):
+                        logger.info("Weather update task was cancelled")
+                    else:
+                        logger.error(f"Weather update task failed: {exc}")
+            except Exception as e:
+                logger.error(f"Error in task callback: {str(e)}")
+        
+        task.add_done_callback(task_done_callback)
         logger.info("Application started successfully")
     except Exception as e:
         logger.error(f"Error during startup: {str(e)}")
