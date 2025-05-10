@@ -16,17 +16,8 @@ branch_labels = None
 depends_on = None
 
 def upgrade():
-    # Add timestamp columns to user_plants table
-    op.add_column('user_plants', sa.Column('created_at', sa.DateTime(), nullable=True))
-    op.add_column('user_plants', sa.Column('updated_at', sa.DateTime(), nullable=True))
-    
-    # Set default values for existing rows
-    op.execute("UPDATE user_plants SET created_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP")
-    
-    # Make columns not nullable after setting defaults
-    op.alter_column('user_plants', 'created_at', nullable=False)
-    op.alter_column('user_plants', 'updated_at', nullable=False)
+    # Add section column to user_plants table if it doesn't exist
+    op.add_column('user_plants', sa.Column('section', sa.String(), nullable=True))
 
 def downgrade():
-    op.drop_column('user_plants', 'updated_at')
-    op.drop_column('user_plants', 'created_at') 
+    op.drop_column('user_plants', 'section') 
