@@ -5,6 +5,7 @@ from app.services import users as user_service
 from app.schemas.users import User, UserCreate, UserWithPlants, UserPlantAdd
 from app.schemas.plants import Plant
 from app.database import get_db
+from fastapi.exceptions import ResponseValidationError
 
 router = APIRouter()
 
@@ -17,10 +18,13 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
 
 @router.get("/{user_id}", response_model=UserWithPlants)
 def read_user(user_id: int, db: Session = Depends(get_db)):
-    db_user = user_service.get_user(db, user_id)
-    if not db_user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return db_user
+    try:
+        db_user = user_service.get_user(db, user_id)
+        if not db_user:
+            raise HTTPException(status_code=404, detail="User not found")
+        return db_user
+    except ResponseValidationError as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/{user_id}/plants")
 def add_plant_to_user(user_id: int, plant: UserPlantAdd, db: Session = Depends(get_db)):

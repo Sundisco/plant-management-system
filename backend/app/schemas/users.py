@@ -12,7 +12,7 @@ class UserCreate(UserBase):
 
 class User(UserBase):
     id: int
-    created_at: datetime
+    created_at: Optional[datetime] = None
 
 class UserPlantAdd(BaseSchema):
     plant_id: int
