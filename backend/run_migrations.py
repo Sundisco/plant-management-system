@@ -27,26 +27,17 @@ def run_migrations():
         # Set the script location
         alembic_cfg.set_main_option("script_location", os.path.join(current_dir, "alembic"))
         
-        # Get database URL from environment
-        database_url = os.getenv("DATABASE_URL")
-        logger.info("Raw DATABASE_URL from environment: %s", database_url)
+        # Get database URL from settings
+        database_url = settings.get_database_url
+        logger.info("Database URL from settings: %s", database_url)
         
         if not database_url:
-            raise ValueError("DATABASE_URL environment variable is not set")
+            raise ValueError("No database URL found in settings")
             
         # Ensure the URL uses postgresql:// instead of postgres://
         if database_url.startswith("postgres://"):
             database_url = database_url.replace("postgres://", "postgresql://", 1)
             logger.info("Converted postgres:// to postgresql://")
-        
-        # Remove any localhost references
-        if "localhost" in database_url:
-            logger.warning("Found localhost in database URL, this might cause issues")
-            # Try to get the actual database URL from Render's environment
-            render_db_url = os.getenv("RENDER_DATABASE_URL")
-            if render_db_url:
-                logger.info("Found RENDER_DATABASE_URL, using that instead")
-                database_url = render_db_url
         
         # Set the database URL
         alembic_cfg.set_main_option("sqlalchemy.url", database_url)
@@ -65,6 +56,7 @@ def run_migrations():
             logger.error("Failed to connect to database: %s", str(e))
             raise
         
+        # Run migrations
         command.upgrade(alembic_cfg, "head")
         logger.info("Migrations completed successfully")
         
