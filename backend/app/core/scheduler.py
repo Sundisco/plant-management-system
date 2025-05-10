@@ -38,15 +38,11 @@ async def update_weather_periodic():
                 logger.info("Weather update task was cancelled")
                 raise
 
-def start_scheduler():
+async def start_scheduler():
     """Start the background tasks"""
     try:
-        loop = asyncio.get_event_loop()
-        weather_task = loop.create_task(update_weather_periodic())
-        
-        # Add task to the loop
-        loop.create_task(weather_task)
-        
+        # Create and start the weather update task
+        weather_task = asyncio.create_task(update_weather_periodic())
         logger.info("Scheduler started successfully")
         return weather_task
     except Exception as e:

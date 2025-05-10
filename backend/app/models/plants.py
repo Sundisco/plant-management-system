@@ -30,6 +30,6 @@ class Plant(Base):
     pruning_info = relationship("Pruning", back_populates="plant", uselist=False, cascade="all, delete-orphan")
     sunlight_info = relationship("Sunlight", back_populates="plant", cascade="all, delete-orphan")
     attracts = relationship("Attracts", back_populates="plant", cascade="all, delete-orphan")
-    users = relationship("User", secondary="user_plants", back_populates="plants")
+    users = relationship("User", secondary="user_plants", back_populates="plants", overlaps="user_plants")
     watering_schedules = relationship("WateringSchedule", back_populates="plant")
-    user_plants = relationship("UserPlant", back_populates="plant", cascade="all, delete-orphan")
+    user_plants = relationship("UserPlant", back_populates="plant", cascade="all, delete-orphan", overlaps="plants,users")
