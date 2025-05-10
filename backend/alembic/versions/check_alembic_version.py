@@ -15,12 +15,25 @@ branch_labels = None
 depends_on = None
 
 def upgrade():
-    # Print the contents of alembic_version table
+    # First, let's see what's in the alembic_version table
     conn = op.get_bind()
     result = conn.execute(sa.text("SELECT * FROM alembic_version"))
     print("Current alembic_version table contents:")
     for row in result:
         print(row)
+    
+    # Now let's clean up any stale references
+    conn.execute(sa.text("""
+        DELETE FROM alembic_version 
+        WHERE version_num IN ('merge_heads', 'add_timestamps_to_user_plants')
+    """))
+    
+    # Ensure we have the correct version
+    conn.execute(sa.text("""
+        INSERT INTO alembic_version (version_num)
+        VALUES ('fix_all_migrations')
+        ON CONFLICT (version_num) DO NOTHING
+    """))
 
 def downgrade():
     pass 
