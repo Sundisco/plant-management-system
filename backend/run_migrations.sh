@@ -4,14 +4,13 @@ set -e  # Exit on error
 # Change to the backend directory
 cd "$(dirname "$0")"
 
-# Make sure the script is executable
-chmod +x fix_alembic.py
+# Load environment variables
+export $(grep -v '^#' .env | xargs)
 
-# Run the alembic version fix script
-echo "Fixing alembic version table..."
-python3 fix_alembic.py
+# Reset alembic_version table using direct SQL
+echo "Resetting alembic_version table..."
+PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DB -f reset_alembic.sql
 
 # Run the migrations
 echo "Running database migrations..."
-alembic upgrade reset_migrations
-alembic upgrade head 
+alembic upgrade new_head 
