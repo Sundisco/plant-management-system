@@ -1,9 +1,8 @@
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, configure_mappers
 from app.core.config import settings
 from sqlalchemy import event
-from sqlalchemy.orm import mapper
 import logging
 
 # Set up logging
@@ -33,11 +32,19 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 # Create Base class
 Base = declarative_base()
 
-# Configure mappers
-@event.listens_for(Base.metadata, 'after_create')
-def configure_mappers(target, connection, **kw):
-    """Configure all mappers after tables are created"""
-    mapper.configure_mappers()
+# Import all models to ensure they are registered with Base
+from app.models.users import User
+from app.models.plants import Plant
+from app.models.user_plants import UserPlant
+from app.models.watering_schedule import WateringSchedule
+from app.models.watering import Watering
+from app.models.pruning import Pruning
+from app.models.sunlight import Sunlight
+from app.models.attracts import Attracts
+from app.models.plant_guides import PlantGuide
+
+# Configure all mappers
+configure_mappers()
 
 def get_db():
     db = SessionLocal()
@@ -48,6 +55,3 @@ def get_db():
         raise
     finally:
         db.close()
-
-# Import all models to ensure they are registered with Base
-from app.models import *  # This will import all models and register them with Base
