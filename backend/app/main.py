@@ -6,19 +6,27 @@ from datetime import date
 from app.routes import plants, plant_guides, watering, pruning, sunlight, attracts, users, watering_schedule, weather_forecast
 # Temporarily comment out plant_guides import
 # from app.routes import plant_guides
-from app.core.scheduler import update_weather_periodic
+from app.core.scheduler import update_weather_periodic, start_scheduler
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from app.routes import watering_schedule
 import os
 import asyncio
 import logging
+from app.core.config import settings
+from app.api.api_v1.api import api_router
 
 # Set up logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
-app = FastAPI()
+app = FastAPI(
+    title=settings.PROJECT_NAME,
+    openapi_url=f"{settings.API_V1_STR}/openapi.json"
+)
 
 # Define allowed origins
 ALLOWED_ORIGINS = [
@@ -64,31 +72,20 @@ app.include_router(
 async def root():
     return {"message": "Plant Management API", "status": "healthy"}
 
-# Start scheduler on app startup
+# Global variable to store the scheduler task
+scheduler_task = None
+
 @app.on_event("startup")
 async def startup_event():
+    """Start background tasks on startup"""
+    global scheduler_task
     try:
         logger.info("Starting application...")
-        # Create a background task for weather updates without blocking
-        task = asyncio.create_task(update_weather_periodic(BackgroundTasks()))
-        # Add error handling for the task
-        def task_done_callback(t):
-            try:
-                exc = t.exception()
-                if exc:
-                    if isinstance(exc, asyncio.CancelledError):
-                        logger.info("Weather update task was cancelled")
-                    else:
-                        logger.error(f"Weather update task failed: {exc}")
-            except Exception as e:
-                logger.error(f"Error in task callback: {str(e)}")
-        
-        task.add_done_callback(task_done_callback)
-        logger.info("Application started successfully")
+        # Start the scheduler
+        scheduler_task = start_scheduler()
+        logger.info("Background tasks started successfully")
     except Exception as e:
-        logger.error(f"Error during startup: {str(e)}")
-        # Don't raise the exception, allow the app to start even if weather updates fail
-        pass
+        logger.error(f"Error starting background tasks: {str(e)}")
 
 @app.on_event("startup")
 async def list_routes_on_startup():
@@ -101,5 +98,18 @@ async def list_routes_on_startup():
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Clean up background tasks on shutdown"""
+    global scheduler_task
+    if scheduler_task:
+        try:
+            scheduler_task.cancel()
+            await scheduler_task
+        except asyncio.CancelledError:
+            logger.info("Scheduler task cancelled successfully")
+        except Exception as e:
+            logger.error(f"Error cancelling scheduler task: {str(e)}")
 
 #uvicorn app.main:app --reload
