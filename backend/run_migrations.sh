@@ -1,18 +1,9 @@
 #!/bin/bash
 
-# Activate virtual environment if it exists
-if [ -d ".venv" ]; then
-    source .venv/bin/activate
-fi
+# Run the alembic version fix script
+echo "Fixing alembic version table..."
+python fix_alembic.py
 
-# Run migrations
+# Run the migrations
 echo "Running database migrations..."
-alembic upgrade head
-
-# Check if migrations were successful
-if [ $? -eq 0 ]; then
-    echo "Migrations completed successfully"
-else
-    echo "Error running migrations"
-    exit 1
-fi 
+alembic upgrade head 
