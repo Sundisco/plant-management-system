@@ -184,9 +184,13 @@ def get_user_plants(
     Get all plants in user's garden with their sections
     """
     try:
-        # Query user_plants first to get sections
+        # Query user_plants first to get sections and timestamps
         user_plants_dict = {
-            up.plant_id: up.section 
+            up.plant_id: {
+                'section': up.section,
+                'created_at': up.created_at,
+                'updated_at': up.updated_at
+            }
             for up in db.query(UserPlant)
             .filter(UserPlant.user_id == user_id)
             .all()
@@ -207,11 +211,11 @@ def get_user_plants(
             .all()
         )
         
-        # Combine plant info with sections
+        # Combine plant info with sections and timestamps
         result = []
         for plant in plants:
             try:
-                section = user_plants_dict.get(plant.id)
+                plant_info = user_plants_dict.get(plant.id, {})
                 attracts = [a.species for a in plant.attracts] if plant.attracts else []
                 sunlight = [s.condition for s in plant.sunlight_info] if plant.sunlight_info else []
                 plant_data = {
@@ -230,7 +234,9 @@ def get_user_plants(
                     "maintenance": plant.maintenance,
                     "hardiness_zone": plant.hardiness_zone,
                     "edible_fruit": plant.edible_fruit,
-                    "section": section,
+                    "section": plant_info.get('section'),
+                    "created_at": plant_info.get('created_at'),
+                    "updated_at": plant_info.get('updated_at'),
                     "attracts": attracts,
                     "sunlight": sunlight
                 }

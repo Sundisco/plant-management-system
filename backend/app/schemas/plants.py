@@ -2,6 +2,7 @@
 from pydantic import BaseModel
 from typing import List, Optional
 from app.schemas.base import BaseSchema
+from datetime import datetime
 
 class PlantBase(BaseSchema):
     common_name: str
@@ -30,23 +31,25 @@ class Plant(BaseModel):
     common_name: str
     scientific_name: List[str]
     other_names: List[str]
-    family: Optional[str]
-    type: Optional[str]
-    cycle: Optional[str]
-    watering: Optional[str]
-    image_url: Optional[str]
-    description: Optional[str]
-    is_evergreen: Optional[bool]
-    growth_rate: Optional[str]
-    maintenance: Optional[str]
-    hardiness_zone: Optional[str]
-    edible_fruit: Optional[bool]
-    section: Optional[str]
-    attracts: Optional[List[str]] = []
-    sunlight: Optional[List[str]] = []
+    family: Optional[str] = None
+    type: Optional[str] = None
+    cycle: Optional[str] = None
+    watering: Optional[str] = None
+    image_url: Optional[str] = None
+    description: Optional[str] = None
+    is_evergreen: Optional[bool] = None
+    growth_rate: Optional[str] = None
+    maintenance: Optional[str] = None
+    hardiness_zone: Optional[str] = None
+    edible_fruit: Optional[bool] = None
+    section: Optional[str] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    attracts: Optional[List[str]] = None
+    sunlight: Optional[List[str]] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 # Use Plant as PlantResponse since they're the same
 PlantResponse = Plant
