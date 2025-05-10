@@ -38,9 +38,8 @@ async def search_plants(
             search_query = search_query.filter(
                 or_(
                     DBPlant.common_name.ilike(search_term),
-                    # Use array_to_string to search within arrays
-                    func.array_to_string(DBPlant.scientific_name, ',').ilike(search_term),
-                    func.array_to_string(DBPlant.other_names, ',').ilike(search_term),
+                    DBPlant.scientific_name.any(search_term),  # Use ANY for array fields
+                    DBPlant.other_names.any(search_term),      # Use ANY for array fields
                     DBPlant.type.ilike(search_term)
                 )
             )
