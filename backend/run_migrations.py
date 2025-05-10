@@ -20,12 +20,21 @@ def run_migrations():
         # Set the script location
         alembic_cfg.set_main_option("script_location", os.path.join(current_dir, "alembic"))
         
-        # Set the database URL from environment
-        alembic_cfg.set_main_option("sqlalchemy.url", settings.get_database_url)
+        # Get database URL from environment
+        database_url = os.getenv("DATABASE_URL")
+        if not database_url:
+            raise ValueError("DATABASE_URL environment variable is not set")
+            
+        # Ensure the URL uses postgresql:// instead of postgres://
+        if database_url.startswith("postgres://"):
+            database_url = database_url.replace("postgres://", "postgresql://", 1)
+        
+        # Set the database URL
+        alembic_cfg.set_main_option("sqlalchemy.url", database_url)
         
         # Run the migration
         logger.info("Running database migrations...")
-        logger.info(f"Using database URL: {settings.get_database_url}")
+        logger.info(f"Using database URL: {database_url}")
         command.upgrade(alembic_cfg, "head")
         logger.info("Migrations completed successfully")
         
