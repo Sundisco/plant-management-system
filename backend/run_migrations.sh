@@ -32,4 +32,4 @@ EOF
 
 # Run the migrations
 echo "Running database migrations..."
-alembic upgrade new_head 
+alembic upgrade head 
