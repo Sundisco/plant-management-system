@@ -1,7 +1,7 @@
 """fix all migrations
 
 Revision ID: fix_all_migrations
-Revises: 5acd350c893e
+Revises: 14da059c1679
 Create Date: 2024-05-10 16:00:00.000000
 
 """
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'fix_all_migrations'
-down_revision = '5acd350c893e'  # This is the base migration
+down_revision = '14da059c1679'  # Changed from 5acd350c893e to 14da059c1679
 branch_labels = None
 depends_on = None
 
