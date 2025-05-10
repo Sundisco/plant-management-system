@@ -28,6 +28,14 @@ if config.config_file_name is not None:
 # Set the target_metadata to your Base.metadata
 target_metadata = Base.metadata  # Change this line from None to Base.metadata
 
+# Get the database URL from environment
+database_url = os.getenv("DATABASE_URL")
+if database_url:
+    # Ensure the URL uses postgresql:// instead of postgres://
+    if database_url.startswith("postgres://"):
+        database_url = database_url.replace("postgres://", "postgresql://", 1)
+    config.set_main_option("sqlalchemy.url", database_url)
+
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
@@ -65,8 +73,18 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
+    # Get the database URL from environment
+    database_url = os.getenv("DATABASE_URL")
+    if not database_url:
+        raise ValueError("DATABASE_URL environment variable is not set")
+    
+    # Ensure the URL uses postgresql:// instead of postgres://
+    if database_url.startswith("postgres://"):
+        database_url = database_url.replace("postgres://", "postgresql://", 1)
+    
+    # Create engine with the database URL
     connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
+        {"sqlalchemy.url": database_url},
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
