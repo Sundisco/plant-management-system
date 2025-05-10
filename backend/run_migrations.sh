@@ -13,4 +13,5 @@ python3 fix_alembic.py
 
 # Run the migrations
 echo "Running database migrations..."
+alembic upgrade reset_migrations
 alembic upgrade head 
