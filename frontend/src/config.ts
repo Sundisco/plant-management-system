@@ -5,19 +5,19 @@ const baseUrl = 'https://5d86-89-150-165-205.ngrok-free.app';  // Using ngrok UR
 // API Endpoints
 export const API_ENDPOINTS = {
   BASE_URL: baseUrl,
-  PLANTS: `${baseUrl}/api/plants`,
-  PLANTS_SEARCH: `${baseUrl}/api/plants/search`,
-  USER_PLANTS: (userId: number) => `${baseUrl}/api/plants/user/${userId}/plants`,
-  ADD_PLANT: (userId: number) => `${baseUrl}/api/plants/user/${userId}/plants`,
-  PLANT_SECTION: (userId: number, plantId: number) => `${baseUrl}/api/plants/user/${userId}/plants/${plantId}/section`,
-  WATERING_SCHEDULE: (userId: number) => `${baseUrl}/api/watering-schedule/watering-schedule/user/${userId}`,
-  PRUNING: (userId: number) => `${baseUrl}/api/pruning/schedule/${userId}`,
-  PLANT_SUGGESTIONS: (sectionId: string) => `${baseUrl}/suggestions/${sectionId}`,
+  PLANTS: '/api/plants',
+  PLANTS_SEARCH: '/api/plants/search',
+  USER_PLANTS: (userId: number) => `/api/plants/user/${userId}/plants`,
+  ADD_PLANT: (userId: number) => `/api/plants/user/${userId}/plants`,
+  PLANT_SECTION: (userId: number, plantId: number) => `/api/plants/user/${userId}/plants/${plantId}/section`,
+  WATERING_SCHEDULE: (userId: number) => `/api/watering-schedule/watering-schedule/user/${userId}`,
+  PRUNING: (userId: number) => `/api/pruning/schedule/${userId}`,
+  PLANT_SUGGESTIONS: (sectionId: string) => `/suggestions/${sectionId}`,
   WEATHER: `${baseUrl}/api/weather`,
-  SECTIONS: (userId: number) => `${baseUrl}/api/sections/${userId}`,
-  CREATE_SECTION: (userId: number) => `${baseUrl}/api/sections/${userId}`,
-  UPDATE_SECTION: (userId: number, sectionId: number) => `${baseUrl}/api/sections/${userId}/${sectionId}`,
-  DELETE_SECTION: (userId: number, sectionId: number) => `${baseUrl}/api/sections/${userId}/${sectionId}`,
+  SECTIONS: (userId: number) => `/api/sections/${userId}`,
+  CREATE_SECTION: (userId: number) => `/api/sections/${userId}`,
+  UPDATE_SECTION: (userId: number, sectionId: number) => `/api/sections/${userId}/${sectionId}`,
+  DELETE_SECTION: (userId: number, sectionId: number) => `/api/sections/${userId}/${sectionId}`,
 };
 
 // API Error Messages
