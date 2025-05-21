@@ -42,7 +42,11 @@ app = FastAPI(
 # Define allowed origins
 ALLOWED_ORIGINS = [
     "http://localhost:5173",  # Local development
+    "http://localhost:3000",  # Alternative local development port
     "https://plant-management-frontend.onrender.com",  # Production frontend
+    "http://localhost",  # Local development without port
+    "http://127.0.0.1:5173",  # Local development with IP
+    "http://127.0.0.1:3000",  # Alternative local development with IP
 ]
 
 # Add CORS middleware with explicit configuration
@@ -50,9 +54,9 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allow_headers=["*"],
-    expose_headers=["*"],
+    allow_methods=["*"],  # Allow all methods
+    allow_headers=["*"],  # Allow all headers
+    expose_headers=["*"],  # Expose all headers
     max_age=3600,
 )
 
