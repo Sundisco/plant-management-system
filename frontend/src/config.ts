@@ -2,6 +2,10 @@
 const isDevelopment = import.meta.env.DEV;
 const baseUrl = import.meta.env.VITE_API_URL || 'https://5d86-89-150-165-205.ngrok-free.app';
 
+// Log the environment and base URL for debugging
+console.log('Environment:', isDevelopment ? 'Development' : 'Production');
+console.log('Base URL:', baseUrl);
+
 // API Endpoints
 export const API_ENDPOINTS = {
   BASE_URL: baseUrl,
