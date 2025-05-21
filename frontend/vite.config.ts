@@ -8,13 +8,13 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: process.env.VITE_API_URL || 'https://5d86-89-150-165-205.ngrok-free.app',
         changeOrigin: true,
         secure: false,
         ws: true
       },
       '/watering-schedule': {
-        target: 'http://localhost:8000',
+        target: process.env.VITE_API_URL || 'https://5d86-89-150-165-205.ngrok-free.app',
         changeOrigin: true,
         secure: false
       }

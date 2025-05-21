@@ -1,6 +1,6 @@
 // API Configuration
 const isDevelopment = import.meta.env.DEV;
-const baseUrl = 'https://5d86-89-150-165-205.ngrok-free.app';  // Using ngrok URL for both development and production
+const baseUrl = import.meta.env.VITE_API_URL || 'https://5d86-89-150-165-205.ngrok-free.app';
 
 // API Endpoints
 export const API_ENDPOINTS = {
