@@ -20,4 +20,8 @@ export interface Plant {
   next_watering?: string;
   in_user_garden: boolean;
   user_id: number;
+}
+
+export interface WateringSchedule {
+  [date: string]: number;
 } 
