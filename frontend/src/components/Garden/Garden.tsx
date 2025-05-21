@@ -273,7 +273,8 @@ export function Garden({ userId = 1 }: GardenProps) {
 
       // Update local state
       setSections((prev: Section[]) => prev.filter(s => s.id !== id));
-      setPlants((prev: Plant[]) => prev.map(p => p.section === deletedSection.section_id ? { ...p, section: null } : p));
+      const updatedPlants = plants.map((p: Plant) => p.section === deletedSection.section_id ? { ...p, section: null } : p);
+      setPlants(updatedPlants);
       if (selectedSection === deletedSection.section_id) setSelectedSection(null);
     } catch (error) {
       console.error('Error deleting section:', error);

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { WateringSchedule } from '../types/Plant';
+import { API_ENDPOINTS } from '../config';
 
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
 
@@ -36,7 +37,7 @@ export const useWateringSchedule = () => {
       }
 
       // Fetch new data if cache is expired or doesn't exist
-      const response = await fetch(`/api/watering-schedule/${user.id}`);
+      const response = await fetch(`${API_ENDPOINTS.BASE_URL}${API_ENDPOINTS.WATERING_SCHEDULE(user.id)}`);
       if (!response.ok) {
         throw new Error('Failed to fetch watering schedule');
       }
