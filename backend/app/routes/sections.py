@@ -7,13 +7,13 @@ from app.database import get_db
 
 router = APIRouter()
 
-@router.get("/", response_model=List[SectionOut])
+@router.get("/{user_id}", response_model=List[SectionOut])
 def get_sections(user_id: int, db: Session = Depends(get_db)):
     """Get all sections for a user"""
     return db.query(Section).filter(Section.user_id == user_id).all()
 
-@router.post("/", response_model=SectionOut)
-def create_section(section: SectionCreate, user_id: int, db: Session = Depends(get_db)):
+@router.post("/{user_id}", response_model=SectionOut)
+def create_section(user_id: int, section: SectionCreate, db: Session = Depends(get_db)):
     """Create a new section for a user"""
     db_section = Section(user_id=user_id, **section.model_dump())
     db.add(db_section)
