@@ -52,7 +52,7 @@ export const PlantSearch: React.FC<PlantSearchProps> = ({ onPlantAdded, gardenPl
     if (!user?.id) return;
     try {
       const { data, error } = await api.get<Plant[]>(
-        `${API_ENDPOINTS.BASE_URL}${API_ENDPOINTS.USER_PLANTS(user.id)}?limit=50`
+        `${API_ENDPOINTS.USER_PLANTS(user.id)}?limit=50`
       );
       if (error) {
         console.error('Error fetching user plants:', error);
