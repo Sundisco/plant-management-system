@@ -19,7 +19,7 @@ const categories: { key: PlantGuide['type']; label: string }[] = [
   { key: 'pruning', label: 'Pruning' },
 ];
 
-const PlantGuidesTabsComponent: React.FC<PlantGuidesTabsProps> = ({ plantId }) => {
+const PlantGuidesTabs: React.FC<PlantGuidesTabsProps> = ({ plantId }) => {
   const [guides, setGuides] = useState<PlantGuide[]>([]);
   const [selected, setSelected] = useState<PlantGuide['type']>('watering');
   const [loading, setLoading] = useState(true);
@@ -75,4 +75,4 @@ const PlantGuidesTabsComponent: React.FC<PlantGuidesTabsProps> = ({ plantId }) =
   );
 };
 
-export default PlantGuidesTabsComponent; 
+export default PlantGuidesTabs; 

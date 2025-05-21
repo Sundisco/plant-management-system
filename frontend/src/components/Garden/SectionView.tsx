@@ -103,9 +103,9 @@ export const SectionView: React.FC<SectionViewProps> = ({
       const response = await renameSection(editingSection.id, newName, editingSection.glyph);
       if (response.data) {
         const updatedSection = response.data as Section;
-        const updatedSections = sections.map(s => 
+        const updatedSections = sections.map((s: Section) => 
           s.id === updatedSection.id ? updatedSection : s
-        );
+        ) as Section[];
         onSectionUpdate(updatedSections);
         setEditingSection(null);
       }

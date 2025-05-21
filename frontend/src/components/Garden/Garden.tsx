@@ -176,8 +176,8 @@ export function Garden({ userId = 1 }: GardenProps) {
       setTimeout(() => {
         const updatedPlants = plants.map((p: Plant) => 
           p.id === plantId ? { ...p, section: newSection } : p
-        ) as Plant[];
-        setPlants(updatedPlants);
+        );
+        setPlants([...updatedPlants]);
       }, 100);
     } catch (error) {
       console.error('Error updating section:', error);
