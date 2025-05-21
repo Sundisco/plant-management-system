@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: plant-management-frontend
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_VERSION
+        value: 18.0.0
+      - key: VITE_API_URL
+        value: https://5d86-89-150-165-205.ngrok-free.app 
