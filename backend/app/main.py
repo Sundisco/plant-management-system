@@ -75,9 +75,13 @@ async def startup_event():
         logger.info("Starting application...")
         # Start the scheduler and await the task
         scheduler_task = await start_scheduler()
-        logger.info("Background tasks started successfully")
+        if scheduler_task:
+            logger.info("Background tasks started successfully")
+        else:
+            logger.warning("Background tasks failed to start, but application will continue running")
     except Exception as e:
         logger.error(f"Error starting background tasks: {str(e)}")
+        logger.warning("Application will continue running without background tasks")
 
 @app.on_event("startup")
 async def list_routes_on_startup():

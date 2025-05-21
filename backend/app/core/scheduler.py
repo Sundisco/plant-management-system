@@ -41,10 +41,14 @@ async def update_weather_periodic():
 async def start_scheduler():
     """Start the background tasks"""
     try:
+        # Add initial delay to ensure database is ready
+        await asyncio.sleep(5)
+        
         # Create and start the weather update task
         weather_task = asyncio.create_task(update_weather_periodic())
         logger.info("Scheduler started successfully")
         return weather_task
     except Exception as e:
         logger.error(f"Error starting scheduler: {str(e)}")
-        raise 
+        # Don't raise the error, just log it and return None
+        return None 
