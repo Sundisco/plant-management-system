@@ -100,12 +100,14 @@ export const SectionView: React.FC<SectionViewProps> = ({
     if (!editingSection) return;
 
     try {
-      const updatedSection = await renameSection(editingSection.id, newName);
-      const updatedSections = sections.map(s => 
-        s.id === editingSection.id ? updatedSection : s
-      );
-      onSectionUpdate(updatedSections);
-      setEditingSection(null);
+      const response = await renameSection(editingSection.id, newName, editingSection.glyph);
+      if (response.data) {
+        const updatedSections = sections.map(s => 
+          s.id === editingSection.id ? response.data as Section : s
+        );
+        onSectionUpdate(updatedSections);
+        setEditingSection(null);
+      }
     } catch (error) {
       console.error('Error updating section:', error);
     }

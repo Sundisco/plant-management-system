@@ -3,7 +3,7 @@ import { Dialog, DialogTitle, DialogContent, IconButton, Grid, Box, Typography, 
 import CloseIcon from '@mui/icons-material/Close';
 import { Plant } from '../../types/Plant';
 import { Section } from '../../types/Section';
-import PlantGuidesTabs from '../PlantGuidesTabs';
+import PlantGuidesTabs from '../PlantGuidesTabs/PlantGuidesTabs';
 import { format, isBefore, differenceInDays } from 'date-fns';
 import WaterDropIcon from '@mui/icons-material/WaterDrop';
 import { useTheme } from '@mui/material/styles';
