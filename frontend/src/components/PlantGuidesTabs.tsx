@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { API_ENDPOINTS } from '../config';
-import PlantGuidesTabs from '../PlantGuidesTabs';
+import { Tabs, Tab, Box, Typography } from '@mui/material';
 
 interface PlantGuide {
   id: number;

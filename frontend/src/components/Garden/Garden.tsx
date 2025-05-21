@@ -174,10 +174,10 @@ export function Garden({ userId = 1 }: GardenProps) {
       }
 
       setTimeout(() => {
-        const updatedPlants = plants.map(p => 
+        const updatedPlants = plants.map((p: Plant) => 
           p.id === plantId ? { ...p, section: newSection } : p
-        ) as Plant[];
-        setPlants(updatedPlants);
+        );
+        setPlants(updatedPlants as Plant[]);
       }, 100);
     } catch (error) {
       console.error('Error updating section:', error);
@@ -227,7 +227,7 @@ export function Garden({ userId = 1 }: GardenProps) {
     
     const res = await sectionsApi.createSection(userId, nextId, name, glyph);
     if (res.data && typeof res.data === 'object' && 'id' in res.data) {
-      setSections(prev => {
+      setSections((prev: Section[]) => {
         const newSections = [...prev, res.data as Section];
         return newSections;
       });
@@ -237,7 +237,7 @@ export function Garden({ userId = 1 }: GardenProps) {
   const handleRenameSection = async (id: number, name: string, glyph: string) => {
     const res = await sectionsApi.renameSection(id, name, glyph);
     if (res.data && typeof res.data === 'object' && 'id' in res.data) {
-      setSections(prev => prev.map(s => s.id === (res.data as Section).id ? res.data as Section : s));
+      setSections((prev: Section[]) => prev.map(s => s.id === (res.data as Section).id ? res.data as Section : s));
     }
   };
 
@@ -272,8 +272,8 @@ export function Garden({ userId = 1 }: GardenProps) {
       await sectionsApi.deleteSection(id);
 
       // Update local state
-      setSections(prev => prev.filter(s => s.id !== id));
-      setPlants(prev => prev.map(p => p.section === deletedSection.section_id ? { ...p, section: null } : p));
+      setSections((prev: Section[]) => prev.filter(s => s.id !== id));
+      setPlants((prev: Plant[]) => prev.map(p => p.section === deletedSection.section_id ? { ...p, section: null } : p));
       if (selectedSection === deletedSection.section_id) setSelectedSection(null);
     } catch (error) {
       console.error('Error deleting section:', error);

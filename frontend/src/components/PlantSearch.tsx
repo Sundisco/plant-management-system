@@ -303,6 +303,7 @@ export const PlantSearch: React.FC<PlantSearchProps> = ({ onPlantAdded, gardenPl
           plant={selectedPlant}
           open={detailsOpen}
           onClose={handleCloseDetails}
+          sections={[]}
         />
       </Box>
     </ClickAwayListener>

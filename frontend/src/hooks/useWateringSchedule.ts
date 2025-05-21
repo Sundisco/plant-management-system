@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from './useAuth';
-import { WateringSchedule } from '../types/watering';
+import { useAuth } from '../contexts/AuthContext';
+import { WateringSchedule } from '../types/Plant';
 
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
 
