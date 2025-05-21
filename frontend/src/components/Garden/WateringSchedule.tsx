@@ -9,16 +9,16 @@ interface WateringScheduleProps {
 
 const WateringSchedule: React.FC<WateringScheduleProps> = ({ schedule, onWater }) => {
   const boxStyle: SxProps<Theme> = {
-    position: 'relative',
-    height: 24,
-    borderRadius: 1.5,
-    cursor: 'pointer',
-    overflow: 'hidden',
-    transition: 'all 0.2s ease',
-    '&:hover': {
-      opacity: 0.9,
-      transform: 'scale(1.02)',
-    }
+                          position: 'relative',
+                          height: 24,
+                          borderRadius: 1.5,
+                          cursor: 'pointer',
+                          overflow: 'hidden',
+                          transition: 'all 0.2s ease',
+                          '&:hover': {
+                            opacity: 0.9,
+                            transform: 'scale(1.02)',
+                          }
   };
 
   return (

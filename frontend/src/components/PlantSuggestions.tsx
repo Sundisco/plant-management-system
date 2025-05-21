@@ -332,162 +332,172 @@ export const PlantSuggestions: React.FC<PlantSuggestionsProps> = ({ selectedSect
                     pb: 0
                   }}>
                     {displayedPlants.map((plant) => (
-                      <Grid item xs={12} sm={6} md={4} key={plant.id} sx={{ display: 'flex', minHeight: 0 }}>
+                      <Grid item xs={12} sm={6} md={4} key={plant.id} sx={{ 
+                        display: 'flex', 
+                        minHeight: 0,
+                        width: '100%'  // Ensure full width
+                      }}>
                         <Card 
                           elevation={1}
-                          sx={{ 
+                          sx={{
                             width: '100%',
+                            aspectRatio: '4/5',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'flex-end',
                             position: 'relative',
-                            transition: 'all 0.3s ease',
-                            '&:hover': {
-                              transform: 'translateY(-4px)',
-                              boxShadow: '0 12px 24px rgba(0,0,0,0.15)',
-                              cursor: 'pointer',
-                              '& .MuiCardMedia-root': {
-                                transform: 'scale(1.05)'
-                              }
-                            },
                             borderRadius: '16px',
                             overflow: 'hidden',
-                            flex: 1,
-                            minHeight: 0,
                             bgcolor: 'background.paper',
                             border: '1px solid',
-                            borderColor: 'divider'
+                            borderColor: 'divider',
+                            cursor: 'pointer',
+                            minHeight: 0,
+                            boxShadow: 2,
+                            p: 0,
                           }}
                           onClick={() => handlePlantClick(plant)}
                         >
+                          {/* Background image */}
                           {plant.image_url && (
-                            <Box sx={{ position: 'relative' }}>
-                              <CardMedia
-                                component="img"
-                                height="280"
-                                image={plant.image_url}
-                                alt={plant.common_name}
+                            <Box
+                              sx={{
+                                position: 'absolute',
+                                inset: 0,
+                                width: '100%',
+                                height: '100%',
+                                backgroundImage: `url(${plant.image_url})`,
+                                backgroundSize: 'cover',
+                                backgroundPosition: 'center',
+                                zIndex: 1,
+                                transition: 'transform 0.5s ease',
+                                '&:hover': {
+                                  transform: 'scale(1.05)',
+                                },
+                              }}
+                            />
+                          )}
+                          {/* Gradient overlay */}
+                          <Box
+                            sx={{
+                              position: 'absolute',
+                              inset: 0,
+                              zIndex: 2,
+                              background: 'linear-gradient(to top, rgba(0,0,0,0.7) 40%, rgba(0,0,0,0.1) 100%)',
+                              pointerEvents: 'none',
+                            }}
+                          />
+                          {/* Content overlay */}
+                          <Box
+                            sx={{
+                              position: 'relative',
+                              zIndex: 3,
+                              p: 2,
+                              display: 'flex',
+                              flexDirection: 'column',
+                              justifyContent: 'flex-end',
+                              height: '100%',
+                            }}
+                          >
+                            <Typography
+                              variant="h6"
+                              sx={{
+                                fontWeight: 600,
+                                color: 'white',
+                                fontSize: '1.1rem',
+                                lineHeight: 1.2,
+                                mb: 1,
+                                textShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                              }}
+                            >
+                              {plant.common_name}
+                            </Typography>
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+                              <Chip 
+                                label={plant.type} 
+                                size="small"
                                 sx={{ 
-                                  objectFit: 'cover',
-                                  transition: 'transform 0.5s ease',
-                                  width: '100%'
+                                  bgcolor: 'rgba(76, 175, 80, 0.85)', 
+                                  color: 'white',
+                                  fontWeight: 500,
+                                  fontSize: '0.75rem',
+                                  height: '24px',
+                                  backdropFilter: 'blur(4px)',
+                                  '& .MuiChip-label': {
+                                    px: 1
+                                  }
                                 }}
                               />
-                              {/* Subtle Gradient Overlay */}
-                              <Box sx={{
-                                position: 'absolute',
-                                top: 0,
-                                left: 0,
-                                right: 0,
-                                bottom: 0,
-                                background: 'linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.5))',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                justifyContent: 'flex-end',
-                                p: 2
-                              }}>
-                                <Typography 
-                                  variant="h6" 
+                              {plant.is_evergreen && (
+                                <Chip 
+                                  label="Evergreen" 
+                                  size="small"
                                   sx={{ 
-                                    fontWeight: 600,
+                                    bgcolor: 'rgba(25, 118, 210, 0.85)', 
                                     color: 'white',
-                                    fontSize: '1.1rem',
-                                    lineHeight: 1.2,
-                                    mb: 1,
-                                    textShadow: '0 1px 2px rgba(0,0,0,0.2)'
+                                    fontWeight: 500,
+                                    fontSize: '0.75rem',
+                                    height: '24px',
+                                    backdropFilter: 'blur(4px)',
+                                    '& .MuiChip-label': {
+                                      px: 1
+                                    }
                                   }}
-                                >
-                                  {plant.common_name}
-                                </Typography>
-                                <Box sx={{ 
-                                  display: 'flex', 
-                                  flexWrap: 'wrap', 
-                                  gap: 0.75
-                                }}>
-                                  <Chip 
-                                    label={plant.type} 
-                                    size="small"
-                                    sx={{ 
-                                      bgcolor: 'rgba(76, 175, 80, 0.85)', 
-                                      color: 'white',
-                                      fontWeight: 500,
-                                      fontSize: '0.75rem',
-                                      height: '24px',
-                                      backdropFilter: 'blur(4px)',
-                                      '& .MuiChip-label': {
-                                        px: 1
-                                      }
-                                    }}
-                                  />
-                                  {plant.is_evergreen && (
-                                    <Chip 
-                                      label="Evergreen" 
-                                      size="small"
-                                      sx={{ 
-                                        bgcolor: 'rgba(25, 118, 210, 0.85)', 
-                                        color: 'white',
-                                        fontWeight: 500,
-                                        fontSize: '0.75rem',
-                                        height: '24px',
-                                        backdropFilter: 'blur(4px)',
-                                        '& .MuiChip-label': {
-                                          px: 1
-                                        }
-                                      }}
-                                    />
-                                  )}
-                                  {plant.edible_fruit && (
-                                    <Chip 
-                                      label="Edible Fruit" 
-                                      size="small"
-                                      sx={{ 
-                                        bgcolor: 'rgba(211, 47, 47, 0.85)', 
-                                        color: 'white',
-                                        fontWeight: 500,
-                                        fontSize: '0.75rem',
-                                        height: '24px',
-                                        backdropFilter: 'blur(4px)',
-                                        '& .MuiChip-label': {
-                                          px: 1
-                                        }
-                                      }}
-                                    />
-                                  )}
-                                  {plant.cycle && (
-                                    <Chip 
-                                      label={plant.cycle} 
-                                      size="small"
-                                      sx={{ 
-                                        bgcolor: 'rgba(156, 39, 176, 0.85)', 
-                                        color: 'white',
-                                        fontWeight: 500,
-                                        fontSize: '0.75rem',
-                                        height: '24px',
-                                        backdropFilter: 'blur(4px)',
-                                        '& .MuiChip-label': {
-                                          px: 1
-                                        }
-                                      }}
-                                    />
-                                  )}
-                                  {plant.attracts && plant.attracts.length > 0 && (
-                                    <Chip
-                                      label={plant.attracts[0]}
-                                      size="small"
-                                      sx={{ 
-                                        bgcolor: 'rgba(237, 108, 2, 0.85)',
-                                        color: 'white',
-                                        fontWeight: 500,
-                                        fontSize: '0.75rem',
-                                        height: '24px',
-                                        backdropFilter: 'blur(4px)',
-                                        '& .MuiChip-label': {
-                                          px: 1
-                                        }
-                                      }}
-                                    />
-                                  )}
-                                </Box>
-                              </Box>
+                                />
+                              )}
+                              {plant.edible_fruit && (
+                                <Chip 
+                                  label="Edible Fruit" 
+                                  size="small"
+                                  sx={{ 
+                                    bgcolor: 'rgba(211, 47, 47, 0.85)', 
+                                    color: 'white',
+                                    fontWeight: 500,
+                                    fontSize: '0.75rem',
+                                    height: '24px',
+                                    backdropFilter: 'blur(4px)',
+                                    '& .MuiChip-label': {
+                                      px: 1
+                                    }
+                                  }}
+                                />
+                              )}
+                              {plant.cycle && (
+                                <Chip 
+                                  label={plant.cycle} 
+                                  size="small"
+                                  sx={{ 
+                                    bgcolor: 'rgba(156, 39, 176, 0.85)', 
+                                    color: 'white',
+                                    fontWeight: 500,
+                                    fontSize: '0.75rem',
+                                    height: '24px',
+                                    backdropFilter: 'blur(4px)',
+                                    '& .MuiChip-label': {
+                                      px: 1
+                                    }
+                                  }}
+                                />
+                              )}
+                              {plant.attracts && plant.attracts.length > 0 && (
+                                <Chip
+                                  label={plant.attracts[0]}
+                                  size="small"
+                                  sx={{ 
+                                    bgcolor: 'rgba(237, 108, 2, 0.85)',
+                                    color: 'white',
+                                    fontWeight: 500,
+                                    fontSize: '0.75rem',
+                                    height: '24px',
+                                    backdropFilter: 'blur(4px)',
+                                    '& .MuiChip-label': {
+                                      px: 1
+                                    }
+                                  }}
+                                />
+                              )}
                             </Box>
-                          )}
+                          </Box>
                         </Card>
                       </Grid>
                     ))}

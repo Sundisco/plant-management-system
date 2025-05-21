@@ -1,16 +1,12 @@
 // API Configuration
 const isDevelopment = import.meta.env.DEV;
-const apiUrl = import.meta.env.VITE_API_URL;
-
-const baseUrl = apiUrl 
-  ? apiUrl  // Custom API URL (ngrok)
-  : isDevelopment 
-    ? 'http://localhost:8000'  // Development
-    : 'https://plant-management-backend.onrender.com';  // Production
+const baseUrl = isDevelopment 
+  ? 'http://localhost:8000'  // Development
+  : 'https://plant-management-backend.onrender.com';  // Production
 
 // API Endpoints
 export const API_ENDPOINTS = {
-  BASE_URL: baseUrl,
+  BASE_URL: baseUrl, // Use the same baseUrl as defined above
   PLANTS: '/api/plants',
   PLANTS_SEARCH: '/api/plants/search',
   USER_PLANTS: (userId: number) => `/api/plants/user/${userId}/plants`,

@@ -27,15 +27,13 @@ import { API_ENDPOINTS, API_TIMEOUTS } from '../config';
 import { api } from '../utils/api';
 import { useAuth } from '../contexts/AuthContext';
 import { PlantDetails } from './Garden/PlantDetails';
-import { Section } from '../types/Section';
 
 interface PlantSearchProps {
   onPlantAdded: (plant: Plant) => void;
   gardenPlants?: Plant[];
-  sections: Section[];
 }
 
-export const PlantSearch: React.FC<PlantSearchProps> = ({ onPlantAdded, gardenPlants = [], sections }) => {
+export const PlantSearch: React.FC<PlantSearchProps> = ({ onPlantAdded, gardenPlants = [] }) => {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<Plant[]>([]);
@@ -305,7 +303,6 @@ export const PlantSearch: React.FC<PlantSearchProps> = ({ onPlantAdded, gardenPl
           plant={selectedPlant}
           open={detailsOpen}
           onClose={handleCloseDetails}
-          sections={sections}
         />
       </Box>
     </ClickAwayListener>

@@ -21,7 +21,6 @@ export const PlantDetails: React.FC<PlantDetailsProps> = ({ plant, open, onClose
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [plantData, setPlantData] = useState<Plant | null>(null);
-  const [tabValue, setTabValue] = useState(0);
 
   useEffect(() => {
     if (plant) {
@@ -514,10 +513,7 @@ export const PlantDetails: React.FC<PlantDetailsProps> = ({ plant, open, onClose
                   }}>
                     Care Guides
                   </Typography>
-                  <PlantGuidesTabs 
-                    value={tabValue}
-                    onChange={(event: React.SyntheticEvent, newValue: number) => setTabValue(newValue)}
-                  />
+                  <PlantGuidesTabs plantId={plantData.id} />
                 </Box>
               )}
             </Box>

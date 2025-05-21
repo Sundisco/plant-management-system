@@ -11,8 +11,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import * as sectionsApi from '../../utils/sectionsApi';
 import WateringSchedule from '../WateringSchedule';
 import { useGarden } from '../../contexts/GardenContext';
-import { PruningSchedule } from '../PruningSchedule';
-import PlantSuggestions from '../PlantSuggestions';
 
 interface Section {
   id: number;
@@ -39,10 +37,6 @@ export function Garden({ userId = 1 }: GardenProps) {
   const [error, setError] = useState<string | null>(null);
   const [sections, setSections] = useState<Section[]>([]);
   const [loadingSections, setLoadingSections] = useState(true);
-  const [sectionFilter, setSectionFilter] = useState<string>('');
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [activeFilterCount, setActiveFilterCount] = useState(0);
-  const [isNextWeek, setIsNextWeek] = useState(false);
 
   const GARDEN_DROPPABLE_ID = 'garden';
   const UNASSIGNED_DROPPABLE_ID = 'unassigned';
@@ -279,8 +273,7 @@ export function Garden({ userId = 1 }: GardenProps) {
 
       // Update local state
       setSections(prev => prev.filter(s => s.id !== id));
-      const updatedPlants = plants.map(p => p.section === deletedSection.section_id ? { ...p, section: null } : p);
-      setPlants(updatedPlants);
+      setPlants(prev => prev.map(p => p.section === deletedSection.section_id ? { ...p, section: null } : p));
       if (selectedSection === deletedSection.section_id) setSelectedSection(null);
     } catch (error) {
       console.error('Error deleting section:', error);
@@ -318,27 +311,6 @@ export function Garden({ userId = 1 }: GardenProps) {
         open={detailsOpen}
         onClose={handleClosePlantDetails}
         sections={sections}
-      />
-      <PlantSearch onPlantAdded={handlePlantAdded} sections={sections} />
-      <WateringSchedule 
-        sectionId={selectedSection ? parseInt(selectedSection) : undefined}
-        sections={sections}
-        isNextWeek={isNextWeek}
-        setIsNextWeek={setIsNextWeek}
-      />
-      <PruningSchedule 
-        selectedSection={selectedSection} 
-        userPlants={plants}
-        onPlantClick={handlePlantClick}
-        sections={sections}
-        sectionFilter={sectionFilter}
-        setSectionFilter={setSectionFilter}
-      />
-      <PlantSuggestions 
-        selectedSection={selectedSection}
-        isFilterOpen={isFilterOpen}
-        setIsFilterOpen={setIsFilterOpen}
-        activeFilterCount={activeFilterCount}
       />
     </>
   );
