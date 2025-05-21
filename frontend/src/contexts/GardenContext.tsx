@@ -21,11 +21,14 @@ export const GardenProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const refreshPlants = useCallback(async () => {
     try {
+      console.log('Fetching plants from:', `${API_ENDPOINTS.USER_PLANTS(1)}?limit=50`);
       const response = await fetch(`${API_ENDPOINTS.USER_PLANTS(1)}?limit=50`);
+      console.log('Plants response status:', response.status);
       if (!response.ok) {
-        throw new Error('Failed to fetch plants');
+        throw new Error(`Failed to fetch plants: ${response.status} ${response.statusText}`);
       }
       const data = await response.json();
+      console.log('Plants data received:', data);
       setPlants(data);
       setLastUpdated(new Date());
       
@@ -38,6 +41,7 @@ export const GardenProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Add a function to update plants and lastUpdated
   const updatePlants = useCallback((newPlants: Plant[]) => {
+    console.log('Updating plants:', newPlants);
     setPlants(newPlants);
     setLastUpdated(new Date());
   }, []);
@@ -49,7 +53,7 @@ export const GardenProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   return (
     <GardenContext.Provider value={{ 
       plants, 
-      setPlants: updatePlants, // Use the new updatePlants function instead of setPlants
+      setPlants: updatePlants,
       refreshPlants, 
       lastUpdated,
       searchResults,
