@@ -12,6 +12,8 @@ import asyncio
 import logging
 from app.core.config import settings
 from app.routes.sections import router as sections_router
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 # Set up logging
 logging.basicConfig(
@@ -45,6 +47,29 @@ app.add_middleware(
     expose_headers=["*"],
     max_age=3600,
 )
+
+# Add error handling middleware
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request, exc):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail}
+    )
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc):
+    return JSONResponse(
+        status_code=422,
+        content={"detail": str(exc)}
+    )
+
+@app.exception_handler(Exception)
+async def general_exception_handler(request, exc):
+    logger.error(f"Unhandled exception: {str(exc)}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error"}
+    )
 
 # Remove the root level route
 # @app.get("/watering-schedule/")
