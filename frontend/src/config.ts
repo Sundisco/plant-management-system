@@ -1,8 +1,6 @@
 // API Configuration
 const isDevelopment = import.meta.env.DEV;
-const baseUrl = isDevelopment 
-  ? 'http://localhost:8000'  // Development
-  : 'https://plant-management-backend.onrender.com';  // Production
+const baseUrl = 'https://7983-89-150-165-205.ngrok-free.app';  // Using ngrok URL for both development and production
 
 // API Endpoints
 export const API_ENDPOINTS = {
