@@ -23,6 +23,17 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Load environment variables
+load_dotenv()
+
+# Database configuration
+DATABASE_URL = os.getenv('DATABASE_URL')
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL environment variable is not set")
+
+engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
     openapi_url="/api/v1/openapi.json"
@@ -114,16 +125,6 @@ async def shutdown_event():
             logger.error(f"Error cancelling scheduler task: {str(e)}")
 
 #uvicorn app.main:app --reload
-
-load_dotenv()
-
-# Database configuration
-DATABASE_URL = os.getenv('DATABASE_URL')
-if not DATABASE_URL:
-    raise ValueError("DATABASE_URL environment variable is not set")
-
-engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 @app.get("/api/plants/{plant_id}/attracts")
 async def get_plant_attracts(plant_id: int):
