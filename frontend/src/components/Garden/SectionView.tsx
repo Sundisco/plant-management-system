@@ -104,7 +104,7 @@ export const SectionView: React.FC<SectionViewProps> = ({
       if (response.data) {
         const updatedSection = response.data as Section;
         const updatedSections = sections.map(s => 
-          s.id === editingSection.id ? updatedSection : s
+          s.id === updatedSection.id ? updatedSection : s
         );
         onSectionUpdate(updatedSections);
         setEditingSection(null);

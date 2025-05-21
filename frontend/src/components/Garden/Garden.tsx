@@ -176,7 +176,7 @@ export function Garden({ userId = 1 }: GardenProps) {
       setTimeout(() => {
         const updatedPlants = plants.map((p: Plant) => 
           p.id === plantId ? { ...p, section: newSection } : p
-        );
+        ) as Plant[];
         setPlants(updatedPlants);
       }, 100);
     } catch (error) {
@@ -272,7 +272,7 @@ export function Garden({ userId = 1 }: GardenProps) {
       await sectionsApi.deleteSection(id);
 
       // Update local state
-      const updatedSections = sections.filter(s => s.id !== id);
+      const updatedSections = sections.filter((s: Section) => s.id !== id);
       setSections(updatedSections);
       const updatedPlants = plants.map((p: Plant) => p.section === deletedSection.section_id ? { ...p, section: null } : p);
       setPlants(updatedPlants);
