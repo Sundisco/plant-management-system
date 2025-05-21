@@ -16,6 +16,14 @@ services:
         value: 3.11.0
       - key: RENDER
         value: true
+      - key: WEATHER_LOCATION
+        value: Copenhagen
+      - key: WEATHER_LAT
+        value: 55.676098
+      - key: WEATHER_LON
+        value: 12.568337
+      - key: WEATHER_API_URL
+        value: https://api.open-meteo.com/v1/forecast
 
   - type: web
     name: plant-management-frontend
