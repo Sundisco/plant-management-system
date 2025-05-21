@@ -272,7 +272,8 @@ export function Garden({ userId = 1 }: GardenProps) {
       await sectionsApi.deleteSection(id);
 
       // Update local state
-      setSections((prev: Section[]) => prev.filter(s => s.id !== id));
+      const updatedSections = sections.filter(s => s.id !== id);
+      setSections(updatedSections);
       const updatedPlants = plants.map((p: Plant) => p.section === deletedSection.section_id ? { ...p, section: null } : p);
       setPlants(updatedPlants);
       if (selectedSection === deletedSection.section_id) setSelectedSection(null);
