@@ -64,7 +64,8 @@ CREATE TABLE public.watering_schedule (
     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
     plant_id INTEGER REFERENCES plants(id) ON DELETE CASCADE,
     scheduled_date TIMESTAMP,
-    completed BOOLEAN DEFAULT FALSE
+    completed BOOLEAN DEFAULT FALSE,
+    completion_timestamp TIMESTAMP
 );
 
 CREATE TABLE public.weather_forecast (

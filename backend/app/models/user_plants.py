@@ -1,11 +1,18 @@
-from sqlalchemy import Column, Integer, ForeignKey, String
+from sqlalchemy import Column, Integer, ForeignKey, DateTime, String
+from sqlalchemy.orm import relationship
 from app.database import Base
-from sqlalchemy.schema import Sequence
+from datetime import datetime
 
 class UserPlant(Base):
     __tablename__ = "user_plants"
 
-    id = Column(Integer, Sequence('user_plant_id_seq'), primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    plant_id = Column(Integer, ForeignKey("plants.id"), nullable=False)
-    section = Column(String, nullable=True) 
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
+    plant_id = Column(Integer, ForeignKey("plants.id", ondelete="CASCADE"))
+    section = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships with overlaps
+    user = relationship("User", back_populates="user_plants", overlaps="plants,user_plants")
+    plant = relationship("Plant", back_populates="user_plants", overlaps="users,user_plants") 

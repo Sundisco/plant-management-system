@@ -1,5 +1,6 @@
 # /backend/app/services/plant_guides.py
 from sqlalchemy.orm import Session
+from sqlalchemy.orm import joinedload
 from app.models.plant_guides import PlantGuide
 from app.schemas.plant_guides import PlantGuideCreate
 from fastapi import HTTPException
@@ -18,11 +19,49 @@ def get_plant_guide(db: Session, guide_id: int):
     return db.query(PlantGuide).filter(PlantGuide.id == guide_id).first()
 
 def get_guides_for_plant(db: Session, plant_id: int, skip: int = 0, limit: int = 100):
-    return db.query(PlantGuide)\
+    guides = db.query(PlantGuide)\
+        .options(joinedload(PlantGuide.plant))\
         .filter(PlantGuide.plant_id == plant_id)\
         .offset(skip)\
         .limit(limit)\
         .all()
+    
+    # Create a serialized version of the guides
+    serialized_guides = []
+    for guide in guides:
+        guide_dict = {
+            "id": guide.id,
+            "plant_id": guide.plant_id,
+            "type": guide.type,
+            "description": guide.description,
+            "plant": None
+        }
+        
+        if guide.plant:
+            plant_dict = {
+                "id": guide.plant.id,
+                "common_name": guide.plant.common_name,
+                "scientific_name": guide.plant.scientific_name,
+                "other_names": guide.plant.other_names,
+                "family": guide.plant.family,
+                "type": guide.plant.type,
+                "description": guide.plant.description,
+                "growth_rate": guide.plant.growth_rate,
+                "maintenance": guide.plant.maintenance,
+                "hardiness_zone": guide.plant.hardiness_zone,
+                "image_url": guide.plant.image_url,
+                "cycle": guide.plant.cycle,
+                "watering": guide.plant.watering,
+                "is_evergreen": guide.plant.is_evergreen,
+                "edible_fruit": guide.plant.edible_fruit,
+                "attracts": [a.species for a in guide.plant.attracts] if guide.plant.attracts else [],
+                "sunlight": [s.condition for s in guide.plant.sunlight_info] if guide.plant.sunlight_info else []
+            }
+            guide_dict["plant"] = plant_dict
+        
+        serialized_guides.append(guide_dict)
+    
+    return serialized_guides
 
 def get_all_guides(db: Session, skip: int = 0, limit: int = 100):
     return db.query(PlantGuide).offset(skip).limit(limit).all()

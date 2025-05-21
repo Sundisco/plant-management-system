@@ -46,12 +46,13 @@ def add_plant_to_user(db: Session, user_id: int, plant_id: int):
     db.add(user_plant)
     db.commit()
     
-    # Sync watering schedules after adding new plant
+    # Create initial watering schedule
     try:
-        sync_watering_schedules()
+        from app.services.watering_schedule import create_watering_schedule
+        create_watering_schedule(db, user_id, plant_id)
     except Exception as e:
         # Log the error but don't fail the request
-        print(f"Error syncing watering schedules: {str(e)}")
+        print(f"Error creating watering schedule: {str(e)}")
     
     return user_plant
 

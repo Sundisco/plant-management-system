@@ -9,6 +9,7 @@ from app.models.pruning import Pruning
 from app.models.sunlight import Sunlight
 from app.models.attracts import Attracts
 from app.models.weather_forecast import WeatherForecast
+from app.models.sections import Section
 
 # Export all models
 __all__ = [
@@ -22,5 +23,6 @@ __all__ = [
     "Pruning",
     "Sunlight",
     "Attracts",
-    "WeatherForecast"
+    "WeatherForecast",
+    "Section"
 ]

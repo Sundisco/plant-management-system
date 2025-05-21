@@ -1,6 +1,8 @@
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, configure_mappers
 from app.core.config import settings
+from sqlalchemy import event
 import logging
 
 # Set up logging
@@ -24,8 +26,25 @@ except Exception as e:
     logger.error(f"Failed to connect to the database: {str(e)}")
     raise
 
+# Create SessionLocal class
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# Create Base class
 Base = declarative_base()
+
+# Import all models to ensure they are registered with Base
+from app.models.users import User
+from app.models.plants import Plant
+from app.models.user_plants import UserPlant
+from app.models.watering_schedule import WateringSchedule
+from app.models.watering import Watering
+from app.models.pruning import Pruning
+from app.models.sunlight import Sunlight
+from app.models.attracts import Attracts
+from app.models.plant_guides import PlantGuide
+
+# Configure all mappers
+configure_mappers()
 
 def get_db():
     db = SessionLocal()
@@ -36,6 +55,3 @@ def get_db():
         raise
     finally:
         db.close()
-
-# Import all models to ensure they are registered with Base
-from app.models import *  # This will import all models and register them with Base

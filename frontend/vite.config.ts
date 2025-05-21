@@ -5,16 +5,21 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
+    port: 5173,
     proxy: {
       '/api': {
-        target: process.env.VITE_API_URL || 'http://localhost:8000',
+        target: 'http://localhost:8000',
         changeOrigin: true,
+        secure: false,
+        ws: true
       },
       '/watering-schedule': {
         target: 'http://localhost:8000',
-        changeOrigin: true
+        changeOrigin: true,
+        secure: false
       }
-    }
+    },
+    allowedHosts: ['.ngrok-free.app']
   },
   build: {
     chunkSizeWarningLimit: 1000,

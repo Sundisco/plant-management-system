@@ -1,33 +1,54 @@
-from fastapi import BackgroundTasks
-from sqlalchemy.orm import Session
-from app.database import SessionLocal
-from app.services import weather_service
-from app.core.config import settings
 import asyncio
-from datetime import datetime, timedelta
 import logging
+from app.core.config import settings
+from app.services.weather_service import update_weather_forecasts
+from app.database import SessionLocal
 
 logger = logging.getLogger(__name__)
 
-async def update_weather_periodic(background_tasks: BackgroundTasks):
-    """Periodic task to update weather data"""
-    try:
-        # Use a timeout for the database session
-        async with asyncio.timeout(30):  # 30 second timeout
+async def update_weather_periodic():
+    """Periodically update weather forecasts"""
+    while True:
+        try:
+            logger.info("Starting weather update")
             db = SessionLocal()
             try:
-                await weather_service.update_weather_forecasts(db, settings.WEATHER_LOCATION)
+                await update_weather_forecasts(db, settings.WEATHER_LOCATION)
+                logger.info("Weather update completed successfully")
+            except Exception as e:
+                logger.error(f"Error updating weather forecasts: {str(e)}")
             finally:
                 db.close()
-    except asyncio.TimeoutError:
-        logger.error("Weather update timed out")
-    except Exception as e:
-        logger.error(f"Error updating weather: {str(e)}")
-    
-    # Schedule the next update
+            
+            # Sleep with cancellation handling
+            try:
+                await asyncio.sleep(settings.WEATHER_UPDATE_INTERVAL * 3600)  # Convert hours to seconds
+            except asyncio.CancelledError:
+                logger.info("Weather update task was cancelled")
+                raise
+        except asyncio.CancelledError:
+            logger.info("Weather update task was cancelled")
+            raise
+        except Exception as e:
+            logger.error(f"Unexpected error in weather update task: {str(e)}")
+            # Sleep for a shorter time on error
+            try:
+                await asyncio.sleep(300)  # 5 minutes
+            except asyncio.CancelledError:
+                logger.info("Weather update task was cancelled")
+                raise
+
+async def start_scheduler():
+    """Start the background tasks"""
     try:
-        next_update = datetime.now() + timedelta(hours=settings.WEATHER_UPDATE_INTERVAL)
-        await asyncio.sleep(settings.WEATHER_UPDATE_INTERVAL * 3600)  # Convert hours to seconds
-        asyncio.create_task(update_weather_periodic(background_tasks))
+        # Add initial delay to ensure database is ready
+        await asyncio.sleep(5)
+        
+        # Create and start the weather update task
+        weather_task = asyncio.create_task(update_weather_periodic())
+        logger.info("Scheduler started successfully")
+        return weather_task
     except Exception as e:
-        logger.error(f"Error scheduling next weather update: {str(e)}") 
+        logger.error(f"Error starting scheduler: {str(e)}")
+        # Don't raise the error, just log it and return None
+        return None 

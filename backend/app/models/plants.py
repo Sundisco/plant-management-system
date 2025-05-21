@@ -1,6 +1,7 @@
 # /backend/app/models/plants.py
 from sqlalchemy import Column, Integer, String, ARRAY, Boolean, Text, Enum
 from sqlalchemy.orm import relationship
+from sqlalchemy.ext.associationproxy import association_proxy
 from app.database import Base
 
 class Plant(Base):
@@ -30,5 +31,7 @@ class Plant(Base):
     pruning_info = relationship("Pruning", back_populates="plant", uselist=False, cascade="all, delete-orphan")
     sunlight_info = relationship("Sunlight", back_populates="plant", cascade="all, delete-orphan")
     attracts = relationship("Attracts", back_populates="plant", cascade="all, delete-orphan")
-    users = relationship("User", secondary="user_plants", back_populates="plants")
+    attracts_names = association_proxy('attracts', 'name')
+    users = relationship("User", secondary="user_plants", back_populates="plants", overlaps="user_plants")
     watering_schedules = relationship("WateringSchedule", back_populates="plant")
+    user_plants = relationship("UserPlant", back_populates="plant", cascade="all, delete-orphan", overlaps="plants,users")

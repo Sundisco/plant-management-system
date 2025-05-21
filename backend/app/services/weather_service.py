@@ -8,6 +8,7 @@ import httpx
 from typing import List
 import logging
 import traceback
+import asyncio
 from app.core.config import settings
 
 # Constants
@@ -28,28 +29,40 @@ async def fetch_weather_data() -> List[dict]:
     
     try:
         logger.info("Fetching weather data from Open-Meteo API")
-        client = httpx.AsyncClient()
-        async with client as session:
-            response = await session.get(url)
-            response.raise_for_status()
-            data = response.json()
-            
-            forecasts = []
-            times = data['hourly']['time']
-            temps = data['hourly']['temperature_2m']
-            precips = data['hourly']['precipitation']
-            winds = data['hourly']['wind_speed_10m']
-            
-            for i in range(len(times)):
-                forecasts.append({
-                    "timestamp": datetime.fromisoformat(times[i]),
-                    "location": settings.WEATHER_LOCATION,
-                    "temperature": temps[i],
-                    "precipitation": precips[i],
-                    "wind_speed": winds[i]
-                })
-            logger.info(f"Successfully fetched {len(forecasts)} weather forecasts")
-            return forecasts
+        async with httpx.AsyncClient(timeout=10.0) as client:  # 10 second timeout
+            try:
+                response = await client.get(url)
+                response.raise_for_status()
+                data = response.json()
+                
+                forecasts = []
+                times = data['hourly']['time']
+                temps = data['hourly']['temperature_2m']
+                precips = data['hourly']['precipitation']
+                winds = data['hourly']['wind_speed_10m']
+                
+                for i in range(len(times)):
+                    forecasts.append({
+                        "timestamp": datetime.fromisoformat(times[i]),
+                        "location": settings.WEATHER_LOCATION,
+                        "temperature": temps[i],
+                        "precipitation": precips[i],
+                        "wind_speed": winds[i]
+                    })
+                logger.info(f"Successfully fetched {len(forecasts)} weather forecasts")
+                return forecasts
+            except asyncio.CancelledError:
+                logger.info("Weather data fetch was cancelled")
+                raise
+            except httpx.TimeoutException:
+                logger.error("Weather data fetch timed out")
+                raise HTTPException(status_code=504, detail="Weather data fetch timed out")
+            except httpx.HTTPError as e:
+                logger.error(f"HTTP error fetching weather data: {str(e)}")
+                raise HTTPException(status_code=500, detail=f"Error fetching weather data: {str(e)}")
+    except asyncio.CancelledError:
+        logger.info("Weather data fetch was cancelled")
+        raise
     except Exception as e:
         logger.error(f"Error fetching weather data: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error fetching weather data: {str(e)}")
@@ -100,22 +113,32 @@ async def update_weather_forecasts(db: Session, location: str):
     """Fetch new weather data and update database"""
     try:
         logger.info(f"Updating weather forecasts for {location}")
-        forecasts = await fetch_weather_data()
+        try:
+            forecasts = await fetch_weather_data()
+        except asyncio.CancelledError:
+            logger.info("Weather update was cancelled")
+            raise
+        except Exception as e:
+            logger.error(f"Error fetching weather data: {str(e)}")
+            return []  # Return empty list instead of raising
+        
         updated_count = 0
         
         for forecast_data in forecasts:
-            forecast = WeatherForecastCreate(**forecast_data)
             try:
-                create_weather_forecast(db, forecast)
-                updated_count += 1
-            except HTTPException as e:
-                if e.status_code == 400:  # Already exists
-                    continue
-                logger.error(f"Error creating forecast: {str(e)}")
-                raise
+                forecast = WeatherForecastCreate(**forecast_data)
+                try:
+                    create_weather_forecast(db, forecast)
+                    updated_count += 1
+                except HTTPException as e:
+                    if e.status_code == 400:  # Already exists
+                        continue
+                    logger.error(f"Error creating forecast: {str(e)}")
+                except Exception as e:
+                    logger.error(f"Unexpected error creating forecast: {str(e)}")
             except Exception as e:
-                logger.error(f"Unexpected error creating forecast: {str(e)}")
-                raise
+                logger.error(f"Error processing forecast data: {str(e)}")
+                continue
             
         logger.info(f"Successfully updated {updated_count} weather forecasts")
         return get_weather_forecast(
@@ -124,9 +147,12 @@ async def update_weather_forecasts(db: Session, location: str):
             datetime.now(),
             datetime.now() + timedelta(days=7)
         )
+    except asyncio.CancelledError:
+        logger.info("Weather update was cancelled")
+        raise
     except Exception as e:
         logger.error(f"Error updating weather forecasts: {str(e)}")
-        raise
+        return []  # Return empty list instead of raising
 
 def should_update_forecast(db: Session, location: str) -> bool:
     """Check if we need to update the forecast"""

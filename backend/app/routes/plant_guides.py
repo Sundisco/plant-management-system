@@ -35,3 +35,7 @@ def delete_guide(guide_id: int, db: Session = Depends(get_db)):
     if not guide_service.delete_plant_guide(db, guide_id):
         raise HTTPException(status_code=404, detail="Guide not found")
     return {"message": "Guide deleted successfully"}
+
+@router.get("/plant/{plant_id}", response_model=List[PlantGuide])
+def get_guides_for_plant(plant_id: int, db: Session = Depends(get_db)):
+    return guide_service.get_guides_for_plant(db, plant_id)

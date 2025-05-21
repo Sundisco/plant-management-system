@@ -4,26 +4,32 @@ from app.database import get_db
 from app.models.watering_schedule import WateringSchedule
 from datetime import date
 from app.routes import plants, plant_guides, watering, pruning, sunlight, attracts, users, watering_schedule, weather_forecast
-# Temporarily comment out plant_guides import
-# from app.routes import plant_guides
-from app.core.scheduler import update_weather_periodic
+from app.core.scheduler import update_weather_periodic, start_scheduler
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from app.routes import watering_schedule
 import os
 import asyncio
 import logging
+from app.core.config import settings
+from app.routes.sections import router as sections_router
 
 # Set up logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
-app = FastAPI()
+app = FastAPI(
+    title=settings.PROJECT_NAME,
+    openapi_url="/api/v1/openapi.json"
+)
 
 # Define allowed origins
 ALLOWED_ORIGINS = [
     "http://localhost:5173",  # Local development
     "https://plant-management-frontend.onrender.com",  # Production frontend
+    "https://7983-89-150-165-205.ngrok-free.app",  # ngrok URL for frontend
 ]
 
 # Add CORS middleware with explicit configuration
@@ -44,40 +50,39 @@ app.add_middleware(
 #     return schedules
 
 app.include_router(plants.router, prefix="/api/plants", tags=["plants"])
-app.include_router(plant_guides.router, prefix="/plant-guides", tags=["plant_guides"])
-# Temporarily comment out plant_guides router
-# app.include_router(plant_guides.router, prefix="/plant-guides", tags=["plant_guides"])
-app.include_router(watering.router, prefix="/watering", tags=["watering"])
+app.include_router(plant_guides.router, prefix="/api/plant_guides", tags=["plant_guides"])
+app.include_router(watering.router, prefix="/api/watering", tags=["watering"])
+app.include_router(watering_schedule.router, prefix="/api/watering-schedule", tags=["watering-schedule"])
 app.include_router(pruning.router, prefix="/api/pruning", tags=["pruning"])
-app.include_router(sunlight.router, prefix="/sunlight", tags=["sunlight"])
-app.include_router(attracts.router, prefix="/attracts", tags=["attracts"])
-app.include_router(users.router, prefix="/users", tags=["users"])
-app.include_router(watering_schedule.router, prefix="/api", tags=["watering_schedule"])
-app.include_router(
-    weather_forecast.router,
-    prefix="/api/weather",
-    tags=["weather"]
-)
+app.include_router(sunlight.router, prefix="/api/sunlight", tags=["sunlight"])
+app.include_router(attracts.router, prefix="/api/attracts", tags=["attracts"])
+app.include_router(users.router, prefix="/api/users", tags=["users"])
+app.include_router(weather_forecast.router, prefix="/api/weather", tags=["weather"])
+app.include_router(sections_router, prefix="/api/sections", tags=["sections"])
 
 # Add root path handler
 @app.get("/")
 async def root():
     return {"message": "Plant Management API", "status": "healthy"}
 
-# Start scheduler on app startup
+# Global variable to store the scheduler task
+scheduler_task = None
+
 @app.on_event("startup")
 async def startup_event():
+    """Start background tasks on startup"""
+    global scheduler_task
     try:
         logger.info("Starting application...")
-        # Create a background task for weather updates without blocking
-        task = asyncio.create_task(update_weather_periodic(BackgroundTasks()))
-        # Add error handling for the task
-        task.add_done_callback(lambda t: logger.error(f"Weather update task failed: {t.exception()}") if t.exception() else None)
-        logger.info("Application started successfully")
+        # Start the scheduler and await the task
+        scheduler_task = await start_scheduler()
+        if scheduler_task:
+            logger.info("Background tasks started successfully")
+        else:
+            logger.warning("Background tasks failed to start, but application will continue running")
     except Exception as e:
-        logger.error(f"Error during startup: {str(e)}")
-        # Don't raise the exception, allow the app to start even if weather updates fail
-        pass
+        logger.error(f"Error starting background tasks: {str(e)}")
+        logger.warning("Application will continue running without background tasks")
 
 @app.on_event("startup")
 async def list_routes_on_startup():
@@ -90,5 +95,20 @@ async def list_routes_on_startup():
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Clean up background tasks on shutdown"""
+    global scheduler_task
+    if scheduler_task:
+        try:
+            # Cancel the task
+            scheduler_task.cancel()
+            # Wait for the task to be cancelled
+            await scheduler_task
+        except asyncio.CancelledError:
+            logger.info("Scheduler task cancelled successfully")
+        except Exception as e:
+            logger.error(f"Error cancelling scheduler task: {str(e)}")
 
 #uvicorn app.main:app --reload
