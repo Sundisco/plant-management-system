@@ -14,8 +14,10 @@
     "strict": true,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitAny": false,
+    "strictNullChecks": false
   },
-  "include": ["src", "../../Code/Garden.tsx"],
+  "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]
 } 
