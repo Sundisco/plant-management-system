@@ -6,7 +6,7 @@ const baseUrl = isDevelopment
 
 // API Endpoints
 export const API_ENDPOINTS = {
-  BASE_URL: 'http://localhost:8000', // Adjust this to your backend URL
+  BASE_URL: baseUrl, // Use the same baseUrl as defined above
   PLANTS: '/api/plants',
   PLANTS_SEARCH: '/api/plants/search',
   USER_PLANTS: (userId: number) => `/api/plants/user/${userId}/plants`,
