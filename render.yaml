@@ -1,15 +1,9 @@
 services:
   - type: web
     name: plant-management-backend
-    env: python
+    env: docker
     plan: free
-    buildCommand: |
-      pip install -r backend/requirements.txt
-      cd backend
-      python run_migrations.py
-    startCommand: |
-      cd backend
-      gunicorn app.main:app --workers 1 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT --timeout 120 --keep-alive 5 --max-requests 1000 --max-requests-jitter 50
+    dockerfilePath: ./backend/Dockerfile
     envVars:
       - key: DATABASE_URL
         value: postgresql://plant_db_user:sfz52a2WmKhXyYueaQaAScA7hspmcHqg@dpg-d0cqkbemcj7s73armf1g-a.frankfurt-postgres.render.com/plant_db
