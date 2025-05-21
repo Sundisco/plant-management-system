@@ -3,7 +3,7 @@ services:
     name: plant-management-backend
     env: docker
     plan: free
-    dockerfilePath: ./backend/Dockerfile
+    dockerfilePath: backend/Dockerfile
     envVars:
       - key: DATABASE_URL
         value: postgresql://plant_db_user:sfz52a2WmKhXyYueaQaAScA7hspmcHqg@dpg-d0cqkbemcj7s73armf1g-a.frankfurt-postgres.render.com/plant_db
