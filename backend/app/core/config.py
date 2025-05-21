@@ -26,10 +26,11 @@ class Settings(BaseSettings):
         return self.LOCAL_DATABASE_URL
     
     # Weather settings
-    WEATHER_LAT: float = 56.0
-    WEATHER_LON: float = 10.0
-    WEATHER_LOCATION: str = "Denmark"
-    WEATHER_UPDATE_INTERVAL: int = 6  # hours
+    WEATHER_LOCATION: str = "Copenhagen"  # Default location
+    WEATHER_LAT: float = 55.676098  # Copenhagen latitude
+    WEATHER_LON: float = 12.568337  # Copenhagen longitude
+    WEATHER_API_URL: str = "https://api.open-meteo.com/v1/forecast"
+    WEATHER_UPDATE_INTERVAL: int = 21600  # 6 hours in seconds
 
     # API settings
     API_V1_STR: str = "/api"
@@ -38,6 +39,6 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = True
-        extra = "allow"
+        extra = "allow"  # Allow extra fields in the settings
 
 settings = Settings() 

@@ -18,4 +18,9 @@ class User(Base):
 
     # Add to User class
     watering_schedules = relationship("WateringSchedule", back_populates="user")
+    user_plants = relationship("UserPlant", back_populates="user", cascade="all, delete-orphan")
+    sections = relationship("Section", back_populates="user", cascade="all, delete-orphan")
+
+    # Add to User class
+    watering_schedules = relationship("WateringSchedule", back_populates="user")
     user_plants = relationship("UserPlant", back_populates="user", cascade="all, delete-orphan") 

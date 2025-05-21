@@ -90,29 +90,26 @@ async def get_pruning_schedule(user_id: int, db: Session = Depends(get_db)):
             'December': '12'
         }
 
-        # 1. Check user plants with sections
-        user_plants_with_sections = (
+        # 1. Get ALL user plants (including unassigned)
+        user_plants = (
             db.query(UserPlant)
-            .filter(
-                UserPlant.user_id == user_id,
-                UserPlant.section.isnot(None)
-            )
+            .filter(UserPlant.user_id == user_id)
             .all()
         )
-        #print(f"\n1. User plants with sections: {[{'plant_id': up.plant_id, 'section': up.section} for up in user_plants_with_sections]}")
+        print(f"\n1. All user plants: {[{'plant_id': up.plant_id, 'section': up.section} for up in user_plants]}")
 
-        if not user_plants_with_sections:
-            #print("No plants with sections found!")
+        if not user_plants:
+            print("No plants found!")
             return {"pruning_schedule": []}
 
-        # 2. Get pruning data
-        plant_ids = [up.plant_id for up in user_plants_with_sections]
+        # 2. Get pruning data for all plants
+        plant_ids = [up.plant_id for up in user_plants]
         pruning_records = (
             db.query(Pruning)
             .filter(Pruning.plant_id.in_(plant_ids))
             .all()
         )
-        #print(f"\n2. Pruning records found: {[{'plant_id': p.plant_id, 'months': p.months} for p in pruning_records]}")
+        print(f"\n2. Pruning records found: {[{'plant_id': p.plant_id, 'months': p.months} for p in pruning_records]}")
 
         # 3. Get plant names
         plants = (
@@ -121,18 +118,22 @@ async def get_pruning_schedule(user_id: int, db: Session = Depends(get_db)):
             .all()
         )
         plant_names = {p.id: p.common_name for p in plants}
-        #print(f"\n3. Plant names: {plant_names}")
+        plant_images = {p.id: p.image_url for p in plants}
+        print(f"\n3. Plant names: {plant_names}")
 
         # 4. Process data by section
         schedule_data = {}
         plant_details = {}
 
-        # Create section mapping
-        section_plant_map = {up.section: [] for up in user_plants_with_sections}
-        for up in user_plants_with_sections:
-            section_plant_map[up.section].append(up.plant_id)
+        # Create section mapping (including 'unassigned' for plants without sections)
+        section_plant_map = {}
+        for up in user_plants:
+            section = up.section if up.section else 'unassigned'
+            if section not in section_plant_map:
+                section_plant_map[section] = []
+            section_plant_map[section].append(up.plant_id)
         
-        #print(f"\n4. Section to plant mapping: {section_plant_map}")
+        print(f"\n4. Section to plant mapping: {section_plant_map}")
 
         # Process each section
         for section, plant_list in section_plant_map.items():
@@ -141,12 +142,12 @@ async def get_pruning_schedule(user_id: int, db: Session = Depends(get_db)):
             
             for pruning in pruning_records:
                 if pruning.plant_id in plant_list:
-                    #print(f"\nProcessing plant {pruning.plant_id} in section {section}")
-                    #print(f"Original months: {pruning.months}")
+                    print(f"\nProcessing plant {pruning.plant_id} in section {section}")
+                    print(f"Original months: {pruning.months}")
                     
                     # Convert month names to numbers
                     month_numbers = [month_to_number[month] for month in pruning.months]
-                    #print(f"Converted to numbers: {month_numbers}")
+                    print(f"Converted to numbers: {month_numbers}")
                     
                     for month_num in month_numbers:
                         if month_num not in schedule_data[section]:
@@ -156,7 +157,8 @@ async def get_pruning_schedule(user_id: int, db: Session = Depends(get_db)):
                         schedule_data[section][month_num] += 1
                         plant_details[section][month_num].append({
                             "id": pruning.plant_id,
-                            "name": plant_names.get(pruning.plant_id, "Unknown Plant")
+                            "name": plant_names.get(pruning.plant_id, "Unknown Plant"),
+                            "image_url": plant_images.get(pruning.plant_id, None)
                         })
 
         # 5. Format final result
@@ -170,7 +172,7 @@ async def get_pruning_schedule(user_id: int, db: Session = Depends(get_db)):
                 }
                 result.append(section_data)
 
-        #print("\n5. Final result:", result)
+        print("\n5. Final result:", result)
         return {"pruning_schedule": result}
 
     except Exception as e:
@@ -266,20 +268,17 @@ async def create_test_pruning_data(db: Session = Depends(get_db)):
 @router.post("/setup-garden-pruning")
 async def setup_garden_pruning(db: Session = Depends(get_db)):
     try:
-        #print("\n=== Setting up pruning schedules for garden plants ===")
+        print("\n=== Setting up pruning schedules for garden plants ===")
         
-        # Get all plants in user's garden that have sections
+        # Get all plants in user's garden, including those without sections
         user_plants = (
             db.query(UserPlant, Plant)
             .join(Plant, UserPlant.plant_id == Plant.id)
-            .filter(
-                UserPlant.user_id == 1,
-                UserPlant.section.isnot(None)
-            )
+            .filter(UserPlant.user_id == 1)
             .all()
         )
         
-        #print(f"\nFound {len(user_plants)} plants with sections")
+        print(f"\nFound {len(user_plants)} plants")
         
         # Define pruning schedules based on plant type
         pruning_schedules = {
@@ -294,8 +293,8 @@ async def setup_garden_pruning(db: Session = Depends(get_db)):
 
         updated_data = []
         for user_plant, plant in user_plants:
-            #print(f"\nProcessing plant: {plant.common_name} (Type: {plant.type})")
-            #print(f"Section: {user_plant.section}")
+            print(f"\nProcessing plant: {plant.common_name} (Type: {plant.type})")
+            print(f"Section: {user_plant.section}")
             
             # Determine pruning schedule based on plant type
             plant_type = plant.type.lower() if plant.type else 'default'

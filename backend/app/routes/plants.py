@@ -1,10 +1,12 @@
 # /backend/app/routes/plants.py
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from app.database import get_db
 from app.models.plants import Plant as DBPlant
+from app.models.attracts import Attracts
+from app.models.sunlight import Sunlight
 from sqlalchemy import or_, func, Index, text
 from app.services import plant_service
 from app.schemas.plants import (
@@ -22,6 +24,7 @@ import threading
 from app.scripts.initialize_watering_schedules import sync_watering_schedules
 from functools import lru_cache
 from datetime import datetime, timedelta
+from pydantic import BaseModel
 
 router = APIRouter()
 
@@ -67,13 +70,13 @@ async def search_plants(
         
         if query:
             search_term = f"%{query}%"
-            # Use array_to_string for array fields and ILIKE for string fields
+            # Use ILIKE for string fields and proper ANY syntax for array fields
             search_query = search_query.filter(
                 or_(
                     DBPlant.common_name.ilike(search_term),
-                    func.array_to_string(DBPlant.scientific_name, ' ').ilike(search_term),
-                    func.array_to_string(DBPlant.other_names, ' ').ilike(search_term),
-                    DBPlant.type.ilike(search_term)
+                    DBPlant.type.ilike(search_term),
+                    text("EXISTS (SELECT 1 FROM unnest(plants.scientific_name) AS sci_name WHERE sci_name ILIKE :search_term)").bindparams(search_term=search_term),
+                    text("EXISTS (SELECT 1 FROM unnest(plants.other_names) AS other_name WHERE other_name ILIKE :search_term)").bindparams(search_term=search_term)
                 )
             )
         
@@ -95,6 +98,8 @@ async def search_plants(
         
         print(f"Query: {query}")
         print(f"Number of plants found: {len(plants)}")
+        if plants:
+            print(f"Sample results: {[(p.common_name, p.scientific_name) for p in plants[:3]]}")
         
         return {
             "items": [
@@ -128,7 +133,31 @@ def read_plant(plant_id: int, db: Session = Depends(get_db)):
     plant = plant_service.get_plant_by_id(db, plant_id)
     if plant is None:
         raise HTTPException(status_code=404, detail="Plant not found")
-    return plant
+    # Serialize attracts and sunlight as lists of strings
+    attracts = [a.species for a in plant.attracts] if plant.attracts else []
+    sunlight = [s.condition for s in plant.sunlight_info] if plant.sunlight_info else []
+    return {
+        "id": plant.id,
+        "common_name": plant.common_name,
+        "scientific_name": plant.scientific_name or [],
+        "other_names": plant.other_names or [],
+        "family": plant.family,
+        "type": plant.type,
+        "cycle": plant.cycle,
+        "watering": plant.watering,
+        "image_url": plant.image_url,
+        "description": plant.description,
+        "is_evergreen": plant.is_evergreen,
+        "growth_rate": plant.growth_rate,
+        "maintenance": plant.maintenance,
+        "hardiness_zone": plant.hardiness_zone,
+        "edible_fruit": plant.edible_fruit,
+        "section": getattr(plant, "section", None),
+        "created_at": getattr(plant, "created_at", None),
+        "updated_at": getattr(plant, "updated_at", None),
+        "attracts": attracts,
+        "sunlight": sunlight
+    }
 
 @router.get("/", response_model=list[Plant])
 def read_plants(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
@@ -165,48 +194,76 @@ def add_plant_to_garden(
     """
     Add a plant to user's garden and return full plant info
     """
-    # Check if plant already in user's garden
-    existing = db.query(UserPlant).filter(
-        UserPlant.user_id == user_id,
-        UserPlant.plant_id == plant_id
-    ).first()
+    try:
+        # Check if plant exists
+        plant = db.query(DBPlant).filter(DBPlant.id == plant_id).first()
+        if not plant:
+            raise HTTPException(
+                status_code=404,
+                detail="Plant not found"
+            )
+
+        # Check if plant already in user's garden
+        existing = db.query(UserPlant).filter(
+            UserPlant.user_id == user_id,
+            UserPlant.plant_id == plant_id
+        ).first()
+        
+        if existing:
+            # Return the plant info even if it's already in the garden
+            return {
+                "id": plant.id,
+                "common_name": plant.common_name,
+                "scientific_name": plant.scientific_name or [],
+                "other_names": plant.other_names or [],
+                "family": plant.family,
+                "type": plant.type,
+                "cycle": plant.cycle,
+                "watering": plant.watering,
+                "image_url": plant.image_url,
+                "description": plant.description,
+                "is_evergreen": plant.is_evergreen,
+                "growth_rate": plant.growth_rate,
+                "maintenance": plant.maintenance,
+                "hardiness_zone": plant.hardiness_zone,
+                "edible_fruit": plant.edible_fruit,
+                "section": existing.section
+            }
+        
+        # Create new user_plant entry
+        user_plant = UserPlant(user_id=user_id, plant_id=plant_id)
+        db.add(user_plant)
+        db.commit()
+        db.refresh(user_plant)
     
-    if existing:
+        # Trigger watering schedule sync in background
+        threading.Thread(target=sync_watering_schedules).start()
+
+        return {
+            "id": plant.id,
+            "common_name": plant.common_name,
+            "scientific_name": plant.scientific_name or [],
+            "other_names": plant.other_names or [],
+            "family": plant.family,
+            "type": plant.type,
+            "cycle": plant.cycle,
+            "watering": plant.watering,
+            "image_url": plant.image_url,
+            "description": plant.description,
+            "is_evergreen": plant.is_evergreen,
+            "growth_rate": plant.growth_rate,
+            "maintenance": plant.maintenance,
+            "hardiness_zone": plant.hardiness_zone,
+            "edible_fruit": plant.edible_fruit,
+            "section": None  # New plants start with no section
+        }
+    except Exception as e:
+        db.rollback()
+        print(f"Error adding plant to garden: {str(e)}")
         raise HTTPException(
-            status_code=400,
-            detail="Plant already in garden"
+            status_code=500,
+            detail="Failed to add plant to garden"
         )
-    
-    # Create new user_plant entry
-    user_plant = UserPlant(user_id=user_id, plant_id=plant_id)
-    db.add(user_plant)
-    db.commit()
-    db.refresh(user_plant)
-
-    # Get the full plant information
-    plant = db.query(DBPlant).filter(DBPlant.id == plant_id).first()
-    
-    # Trigger watering schedule sync in background
-    threading.Thread(target=sync_watering_schedules).start()
-
-    return {
-        "id": plant.id,
-        "common_name": plant.common_name,
-        "scientific_name": plant.scientific_name or [],
-        "other_names": plant.other_names or [],
-        "family": plant.family,
-        "type": plant.type,
-        "cycle": plant.cycle,
-        "watering": plant.watering,
-        "image_url": plant.image_url,
-        "description": plant.description,
-        "is_evergreen": plant.is_evergreen,
-        "growth_rate": plant.growth_rate,
-        "maintenance": plant.maintenance,
-        "hardiness_zone": plant.hardiness_zone,
-        "edible_fruit": plant.edible_fruit,
-        "section": None  # New plants start with no section
-    }
 
 @router.get("/user/{user_id}/plants", response_model=List[PlantResponse])
 def get_user_plants(
@@ -370,4 +427,96 @@ async def update_plant_section(
     except Exception as e:
         db.rollback()
         print(f"Error updating section: {str(e)}")  # Debug log
+        raise HTTPException(status_code=500, detail=str(e))
+
+class PlantFilter(BaseModel):
+    attracts: Optional[List[str]] = None
+    type: Optional[str] = None
+    growth_rate: Optional[str] = None
+    maintenance: Optional[str] = None
+    cycle: Optional[str] = None
+    watering: Optional[str] = None
+    sunlight: Optional[List[str]] = None
+    is_evergreen: Optional[bool] = None
+    edible_fruit: Optional[bool] = None
+
+@router.post("/filtered")
+async def get_filtered_plants(
+    filter: PlantFilter,
+    db: Session = Depends(get_db)
+):
+    """Get plants filtered by various criteria"""
+    try:
+        print(f"Received filter parameters: {filter.dict()}")
+        
+        query = db.query(DBPlant).options(
+            joinedload(DBPlant.attracts),
+            joinedload(DBPlant.sunlight_info)
+        )
+
+        # Apply filters
+        if filter.attracts:
+            print(f"Filtering by attracts: {filter.attracts}")
+            query = query.filter(DBPlant.attracts.any(Attracts.species.in_(filter.attracts)))
+        if filter.type:
+            print(f"Filtering by type: {filter.type}")
+            query = query.filter(DBPlant.type == filter.type)
+        if filter.growth_rate:
+            print(f"Filtering by growth_rate: {filter.growth_rate}")
+            query = query.filter(DBPlant.growth_rate == filter.growth_rate)
+        if filter.maintenance:
+            print(f"Filtering by maintenance: {filter.maintenance}")
+            query = query.filter(DBPlant.maintenance == filter.maintenance)
+        if filter.cycle:
+            print(f"Filtering by cycle: {filter.cycle}")
+            query = query.filter(DBPlant.cycle == filter.cycle)
+        if filter.watering:
+            print(f"Filtering by watering: {filter.watering}")
+            query = query.filter(DBPlant.watering == filter.watering)
+        if filter.sunlight:
+            print(f"Filtering by sunlight: {filter.sunlight}")
+            query = query.filter(DBPlant.sunlight_info.any(Sunlight.condition.in_(filter.sunlight)))
+        if filter.is_evergreen is not None:
+            print(f"Filtering by is_evergreen: {filter.is_evergreen}")
+            query = query.filter(DBPlant.is_evergreen == filter.is_evergreen)
+        if filter.edible_fruit is not None:
+            print(f"Filtering by edible_fruit: {filter.edible_fruit}")
+            query = query.filter(DBPlant.edible_fruit == filter.edible_fruit)
+
+        plants = query.all()
+        print(f"Found {len(plants)} plants matching the criteria")
+        
+        # Serialize the plants with their relationships
+        result = []
+        for plant in plants:
+            attracts = [a.species for a in plant.attracts] if plant.attracts else []
+            sunlight = [s.condition for s in plant.sunlight_info] if plant.sunlight_info else []
+            
+            plant_dict = {
+                "id": plant.id,
+                "common_name": plant.common_name,
+                "scientific_name": plant.scientific_name or [],
+                "other_names": plant.other_names or [],
+                "family": plant.family,
+                "type": plant.type,
+                "cycle": plant.cycle,
+                "watering": plant.watering,
+                "image_url": plant.image_url,
+                "description": plant.description,
+                "is_evergreen": plant.is_evergreen,
+                "growth_rate": plant.growth_rate,
+                "maintenance": plant.maintenance,
+                "hardiness_zone": plant.hardiness_zone,
+                "edible_fruit": plant.edible_fruit,
+                "attracts": attracts,
+                "sunlight": sunlight
+            }
+            result.append(plant_dict)
+        
+        return result
+
+    except Exception as e:
+        print(f"Error in filtered plants search: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))

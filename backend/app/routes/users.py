@@ -38,4 +38,31 @@ def remove_plant_from_user(user_id: int, plant_id: int, db: Session = Depends(ge
 
 @router.get("/{user_id}/plants", response_model=List[Plant])
 def read_user_plants(user_id: int, db: Session = Depends(get_db)):
-    return user_service.get_user_plants(db, user_id) 
+    plants = user_service.get_user_plants(db, user_id)
+    result = []
+    for plant in plants:
+        attracts = [a.species for a in plant.attracts] if hasattr(plant, 'attracts') and plant.attracts else []
+        sunlight = [s.condition for s in getattr(plant, 'sunlight_info', [])] if hasattr(plant, 'sunlight_info') else []
+        result.append({
+            "id": plant.id,
+            "common_name": plant.common_name,
+            "scientific_name": plant.scientific_name or [],
+            "other_names": plant.other_names or [],
+            "family": plant.family,
+            "type": plant.type,
+            "cycle": plant.cycle,
+            "watering": plant.watering,
+            "image_url": plant.image_url,
+            "description": plant.description,
+            "is_evergreen": plant.is_evergreen,
+            "growth_rate": plant.growth_rate,
+            "maintenance": plant.maintenance,
+            "hardiness_zone": plant.hardiness_zone,
+            "edible_fruit": plant.edible_fruit,
+            "section": getattr(plant, "section", None),
+            "created_at": getattr(plant, "created_at", None),
+            "updated_at": getattr(plant, "updated_at", None),
+            "attracts": attracts,
+            "sunlight": sunlight
+        })
+    return result 

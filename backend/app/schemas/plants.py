@@ -1,8 +1,9 @@
 # /backend/app/schemas/plants.py
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import List, Optional
 from app.schemas.base import BaseSchema
 from datetime import datetime
+from pydantic import field_serializer
 
 class PlantBase(BaseSchema):
     common_name: str
@@ -47,6 +48,13 @@ class Plant(BaseModel):
     updated_at: Optional[datetime] = None
     attracts: Optional[List[str]] = None
     sunlight: Optional[List[str]] = None
+
+    @property
+    def attracts(self):
+        # Use attracts_names if available
+        if hasattr(self, 'attracts_names'):
+            return list(self.attracts_names)
+        return []
 
     class Config:
         from_attributes = True

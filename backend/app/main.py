@@ -11,6 +11,7 @@ import os
 import asyncio
 import logging
 from app.core.config import settings
+from app.routes.sections import router as sections_router
 
 # Set up logging
 logging.basicConfig(
@@ -48,20 +49,15 @@ app.add_middleware(
 #     return schedules
 
 app.include_router(plants.router, prefix="/api/plants", tags=["plants"])
-app.include_router(plant_guides.router, prefix="/plant-guides", tags=["plant_guides"])
-# Temporarily comment out plant_guides router
-# app.include_router(plant_guides.router, prefix="/plant-guides", tags=["plant_guides"])
-app.include_router(watering.router, prefix="/watering", tags=["watering"])
+app.include_router(plant_guides.router, prefix="/api/plant_guides", tags=["plant_guides"])
+app.include_router(watering.router, prefix="/api/watering", tags=["watering"])
+app.include_router(watering_schedule.router, prefix="/api/watering-schedule", tags=["watering-schedule"])
 app.include_router(pruning.router, prefix="/api/pruning", tags=["pruning"])
-app.include_router(sunlight.router, prefix="/sunlight", tags=["sunlight"])
-app.include_router(attracts.router, prefix="/attracts", tags=["attracts"])
-app.include_router(users.router, prefix="/users", tags=["users"])
-app.include_router(watering_schedule.router, prefix="/api", tags=["watering_schedule"])
-app.include_router(
-    weather_forecast.router,
-    prefix="/api/weather",
-    tags=["weather"]
-)
+app.include_router(sunlight.router, prefix="/api/sunlight", tags=["sunlight"])
+app.include_router(attracts.router, prefix="/api/attracts", tags=["attracts"])
+app.include_router(users.router, prefix="/api/users", tags=["users"])
+app.include_router(weather_forecast.router, prefix="/api/weather", tags=["weather"])
+app.include_router(sections_router, prefix="/api/sections", tags=["sections"])
 
 # Add root path handler
 @app.get("/")

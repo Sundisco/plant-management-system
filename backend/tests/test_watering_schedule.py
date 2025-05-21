@@ -3,6 +3,15 @@ from fastapi.testclient import TestClient
 import sys
 import os
 from datetime import date, datetime, timedelta
+from sqlalchemy.orm import Session
+from app.models.watering_schedule import WateringSchedule
+from app.models.weather_forecast import WeatherForecast
+from app.services.watering_schedule import (
+    get_watering_schedule,
+    calculate_weather_impact,
+    adjust_watering_date,
+    update_schedule_for_weather
+)
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.main import app
@@ -183,3 +192,78 @@ def test_invalid_date_range():
     )
     assert response.status_code == 200
     assert len(response.json()) == 0  # Should return empty list for invalid range 
+
+def test_weather_impact_calculation():
+    """Test weather impact calculation for different conditions"""
+    # Test high temperature
+    impact, days = calculate_weather_impact(30.0, 0.0)
+    assert impact > 0
+    assert days > 0
+
+    # Test heavy rain
+    impact, days = calculate_weather_impact(20.0, 15.0)
+    assert impact < 0
+    assert days < 0
+
+    # Test normal conditions
+    impact, days = calculate_weather_impact(22.0, 2.0)
+    assert abs(impact) < 0.4
+    assert days == 0
+
+def test_adjust_watering_date():
+    """Test watering date adjustments"""
+    today = date.today()
+    future_date = today + timedelta(days=5)
+    
+    # Test forward adjustment
+    adjusted = adjust_watering_date(future_date, 2)
+    assert adjusted == future_date + timedelta(days=2)
+    
+    # Test backward adjustment
+    adjusted = adjust_watering_date(future_date, -2)
+    assert adjusted == future_date - timedelta(days=2)
+    
+    # Test adjustment before today
+    adjusted = adjust_watering_date(today, -1)
+    assert adjusted == today  # Should not go before today
+
+def test_weather_schedule_adjustment(db: Session):
+    """Test full weather-based schedule adjustment"""
+    # Create test data
+    today = date.today()
+    user_id = 1
+    plant_id = 1
+    
+    # Create a schedule for tomorrow
+    schedule = WateringSchedule(
+        user_id=user_id,
+        plant_id=plant_id,
+        scheduled_date=today + timedelta(days=1),
+        water_needed=True,
+        completed=False
+    )
+    db.add(schedule)
+    db.commit()
+    
+    # Create weather forecast with high temperature
+    forecast = WeatherForecast(
+        timestamp=datetime.now(),
+        temperature=30.0,
+        precipitation=0.0,
+        wind_speed=5.0
+    )
+    db.add(forecast)
+    db.commit()
+    
+    # Get watering schedule
+    result = get_watering_schedule(db, user_id)
+    
+    # Verify schedule was adjusted
+    assert result["schedule"]
+    for day in result["schedule"]:
+        if day["date"] == (today + timedelta(days=1)).isoformat():
+            for section in day["sections"]:
+                for plant in section["plants"]:
+                    if plant["plant_id"] == plant_id:
+                        assert plant["weather_adjusted"] == True
+                        break 

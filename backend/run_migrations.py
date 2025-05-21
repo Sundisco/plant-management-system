@@ -17,6 +17,12 @@ def run_migrations():
             if 'SECRET' not in key and 'KEY' not in key and 'PASS' not in key:
                 logger.info(f"{key}: {value}")
 
+        # Print specific database-related environment variables
+        logger.info("Database-related environment variables:")
+        logger.info(f"DATABASE_URL: {os.getenv('DATABASE_URL')}")
+        logger.info(f"RENDER_DATABASE_URL: {os.getenv('RENDER_DATABASE_URL')}")
+        logger.info(f"RENDER: {os.getenv('RENDER')}")
+
         # Get the directory containing this script
         current_dir = os.path.dirname(os.path.abspath(__file__))
         logger.info(f"Current directory: {current_dir}")
