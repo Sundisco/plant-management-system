@@ -12,6 +12,9 @@ export async function apiRequest<T>(
   timeout: number = API_TIMEOUTS.DEFAULT
 ): Promise<ApiResponse<T>> {
   try {
+    console.log('Making API request to:', url);
+    console.log('Request options:', options);
+    
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
@@ -25,6 +28,8 @@ export async function apiRequest<T>(
     });
 
     clearTimeout(timeoutId);
+    console.log('Response status:', response.status);
+    console.log('Response headers:', Object.fromEntries(response.headers.entries()));
 
     if (!response.ok) {
       let errorMessage = API_ERRORS.SERVER_ERROR;
@@ -41,6 +46,12 @@ export async function apiRequest<T>(
           break;
       }
 
+      console.error('API request failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorMessage
+      });
+
       return {
         error: errorMessage,
         status: response.status,
@@ -48,11 +59,15 @@ export async function apiRequest<T>(
     }
 
     const data = await response.json();
+    console.log('Response data:', data);
+    
     return {
       data,
       status: response.status,
     };
   } catch (error) {
+    console.error('API request error:', error);
+    
     if (error instanceof Error) {
       if (error.name === 'AbortError') {
         return {
