@@ -15,7 +15,7 @@ export interface Plant {
   maintenance?: string;
   cycle?: string;
   attracts?: string[];
-  section?: string;
+  section?: string | null;
   last_watered?: string;
   next_watering?: string;
   in_user_garden: boolean;

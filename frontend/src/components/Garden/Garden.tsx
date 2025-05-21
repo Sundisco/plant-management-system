@@ -78,8 +78,8 @@ export function Garden({ userId = 1 }: GardenProps) {
       });
 
       if (response.ok) {
-        // Use the context's setPlants to update both plants and lastUpdated
-        setPlants(plants.filter(p => p.id !== plantId));
+        const updatedPlants = plants.filter(p => p.id !== plantId);
+        setPlants(updatedPlants);
       } else {
         throw new Error('Failed to remove plant');
       }
@@ -90,28 +90,25 @@ export function Garden({ userId = 1 }: GardenProps) {
   };
 
   const handlePlantAdded = (newPlant: Plant) => {
-    // Use the context's setPlants to update both plants and lastUpdated
-    setPlants(prevPlants => {
-      // Check if plant already exists
-      const existingPlant = prevPlants.find(p => p.id === newPlant.id);
-      if (existingPlant) {
-        // Update existing plant while preserving its section
-        return prevPlants.map(p => 
-          p.id === newPlant.id 
-            ? { ...newPlant, section: existingPlant.section }
-            : p
-        );
-      }
-      // Add new plant with all fields
-      return [...prevPlants, {
+    const existingPlant = plants.find(p => p.id === newPlant.id);
+    if (existingPlant) {
+      const updatedPlants = plants.map(p => 
+        p.id === newPlant.id 
+          ? { ...newPlant, section: existingPlant.section }
+          : p
+      ) as Plant[];
+      setPlants(updatedPlants);
+    } else {
+      const updatedPlants = [...plants, {
         ...newPlant,
         section: null,
         image_url: newPlant.image_url || '',
         scientific_name: newPlant.scientific_name || [],
         other_names: newPlant.other_names || [],
         type: newPlant.type || ''
-      }];
-    });
+      }] as Plant[];
+      setPlants(updatedPlants);
+    }
   };
 
   const handleDragEnd = async (result: DropResult) => {
@@ -126,7 +123,6 @@ export function Garden({ userId = 1 }: GardenProps) {
       source.index === destination.index
     ) return;
 
-    // Only allow drop into valid sections or 'unassigned'
     const validSectionIds = sections.map(s => s.section_id);
     if (
       destination.droppableId !== UNASSIGNED_DROPPABLE_ID &&
@@ -136,7 +132,6 @@ export function Garden({ userId = 1 }: GardenProps) {
       return;
     }
 
-    // Debug log the drag event
     console.log('Drag event:', {
       sourceDroppableId: source.droppableId,
       destinationDroppableId: destination.droppableId,
@@ -146,36 +141,19 @@ export function Garden({ userId = 1 }: GardenProps) {
     const plantId = parseInt(draggableId.split('-')[1]);
     const newSection = destination.droppableId === UNASSIGNED_DROPPABLE_ID ? null : destination.droppableId;
 
-    // Prevent dragging between types
-    // Find the plant being dragged
     const draggedPlant = plants.find(p => p.id === plantId);
-    // Find the type group for the source and destination
-    // If you use section-based DnD, this check may be skipped or adjusted
     if (draggedPlant) {
-      // If you have type-based grouping, you may want to check if the type matches
-      // For example, if droppableId encodes type, you can extract and compare
-      // Here, we assume droppableId is section_id or 'unassigned', so we allow section moves
-      // But if you want to restrict by type, add logic here
-      // Example: if (sourceType !== destinationType) { alert('Cannot move between types'); return; }
-      // For now, we allow section moves, but not type moves
-      // If you want to restrict, uncomment below:
-      // if (sourceType !== destinationType) {
-      //   alert('Cannot move between types');
-      //   return;
-      // }
+      // Section-based DnD logic here
     }
 
-    // Debug log the new section assignment
     console.log('Assigning plant', plantId, 'to section', newSection);
 
-    // Use actual user ID from context
     const actualUserId = userId || user?.id;
     if (!actualUserId) {
       console.error('User not authenticated');
       return;
     }
 
-    // Debug logging
     console.log('Updating plant section:', {
       url: `${API_ENDPOINTS.BASE_URL}${API_ENDPOINTS.PLANT_SECTION(actualUserId, plantId)}`,
       payload: { section: newSection }
@@ -195,20 +173,15 @@ export function Garden({ userId = 1 }: GardenProps) {
         throw new Error(`Failed to update section: ${response.statusText}`);
       }
 
-      // Delay state update to avoid DnD race condition
       setTimeout(() => {
-        setPlants(prevPlants => {
-          const updated = prevPlants.map(p => p.id === plantId ? { ...p, section: newSection } : p);
-          console.log('Updated plants state:', updated.map(p => ({ id: p.id, section: p.section })));
-          return updated;
-        });
-      }, 50);
-
+        const updatedPlants = plants.map(p => 
+          p.id === plantId ? { ...p, section: newSection } : p
+        ) as Plant[];
+        setPlants(updatedPlants);
+      }, 100);
     } catch (error) {
-      console.error('Error updating plant section:', error);
-      alert('Error updating plant section. Please try again.');
-      // On error, refresh the entire garden data
-      await fetch(API_ENDPOINTS.USER_PLANTS(actualUserId));
+      console.error('Error updating section:', error);
+      setError(error instanceof Error ? error.message : 'Failed to update section');
     }
   };
 
