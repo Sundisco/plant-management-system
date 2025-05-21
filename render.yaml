@@ -35,4 +35,4 @@ services:
       - key: VITE_API_URL
         value: https://plant-management-backend.onrender.com
       - key: NODE_VERSION
-        value: 18.0.0 
+        value: 20.11.1 
