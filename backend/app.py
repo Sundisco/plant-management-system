@@ -1,66 +1,70 @@
-from flask import Flask, request, jsonify
-from flask_mysqldb import MySQL
+from fastapi import FastAPI, HTTPException
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
 import os
 
 load_dotenv()
 
-app = Flask(__name__)
+app = FastAPI()
 
-# MySQL configuration
-app.config['MYSQL_HOST'] = os.getenv('MYSQL_HOST', 'localhost')
-app.config['MYSQL_USER'] = os.getenv('MYSQL_USER', 'root')
-app.config['MYSQL_PASSWORD'] = os.getenv('MYSQL_PASSWORD', 'password')
-app.config['MYSQL_DB'] = os.getenv('MYSQL_DB', 'plant_database')
+# Database configuration
+DATABASE_URL = os.getenv('DATABASE_URL')
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL environment variable is not set")
 
-mysql = MySQL(app)
+engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-@app.route('/api/plants/<int:plant_id>/attracts', methods=['GET'])
-def get_plant_attracts(plant_id):
+@app.get("/api/plants/{plant_id}/attracts")
+async def get_plant_attracts(plant_id: int):
     try:
-        # Query the attracts table for this plant
-        cursor = mysql.connection.cursor(dictionary=True)
-        cursor.execute("""
-            SELECT birds, butterflies, bees, hummingbirds, other_animals
-            FROM attracts
-            WHERE plant_id = %s
-        """, (plant_id,))
-        attracts_data = cursor.fetchone()
-        cursor.close()
-
-        if attracts_data:
-            # Convert other_animals from string to list if it's stored as comma-separated values
-            if attracts_data['other_animals']:
-                attracts_data['other_animals'] = [animal.strip() for animal in attracts_data['other_animals'].split(',')]
-            else:
-                attracts_data['other_animals'] = []
+        with SessionLocal() as session:
+            result = session.execute(
+                text("""
+                    SELECT birds, butterflies, bees, hummingbirds, other_animals
+                    FROM attracts
+                    WHERE plant_id = :plant_id
+                """),
+                {"plant_id": plant_id}
+            )
+            attracts_data = result.fetchone()
             
-            return jsonify(attracts_data)
-        return jsonify({'error': 'No attracts data found'}), 404
+            if attracts_data:
+                data = dict(attracts_data._mapping)
+                # Convert other_animals from string to list if it's stored as comma-separated values
+                if data['other_animals']:
+                    data['other_animals'] = [animal.strip() for animal in data['other_animals'].split(',')]
+                else:
+                    data['other_animals'] = []
+                return data
+            raise HTTPException(status_code=404, detail="No attracts data found")
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))
 
-@app.route('/api/plants/<int:plant_id>/sunlight', methods=['GET'])
-def get_plant_sunlight(plant_id):
+@app.get("/api/plants/{plant_id}/sunlight")
+async def get_plant_sunlight(plant_id: int):
     try:
-        # Query the sunlight table for this plant
-        cursor = mysql.connection.cursor(dictionary=True)
-        cursor.execute("""
-            SELECT full_sun, partial_shade, full_shade, notes
-            FROM sunlight
-            WHERE plant_id = %s
-        """, (plant_id,))
-        sunlight_data = cursor.fetchone()
-        cursor.close()
-
-        if sunlight_data:
-            return jsonify(sunlight_data)
-        return jsonify({'error': 'No sunlight data found'}), 404
+        with SessionLocal() as session:
+            result = session.execute(
+                text("""
+                    SELECT full_sun, partial_shade, full_shade, notes
+                    FROM sunlight
+                    WHERE plant_id = :plant_id
+                """),
+                {"plant_id": plant_id}
+            )
+            sunlight_data = result.fetchone()
+            
+            if sunlight_data:
+                return dict(sunlight_data._mapping)
+            raise HTTPException(status_code=404, detail="No sunlight data found")
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == '__main__':
+    import uvicorn
     port = int(os.getenv('PORT', 5000))
-    app.run(host='0.0.0.0', port=port) 
+    uvicorn.run(app, host='0.0.0.0', port=port) 
