@@ -18,7 +18,8 @@ export default defineConfig({
         changeOrigin: true,
         secure: false
       }
-    }
+    },
+    allowedHosts: ['.ngrok-free.app']
   },
   build: {
     chunkSizeWarningLimit: 1000,

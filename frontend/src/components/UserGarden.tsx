@@ -26,7 +26,7 @@ export const UserGarden: React.FC<UserGardenProps> = ({ userId }) => {
 
   const removePlant = async (plantId: number) => {
     try {
-      await fetch(API_ENDPOINTS.ADD_PLANT(userId, plantId), {
+      await fetch(API_ENDPOINTS.ADD_PLANT(userId), {
         method: 'DELETE',
       });
       fetchUserPlants(); // Refresh the list

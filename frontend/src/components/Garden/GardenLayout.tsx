@@ -140,7 +140,10 @@ export const GardenLayout: React.FC<GardenLayoutProps> = ({
           </Box>
           {/* Search bar */}
           <Box sx={{ p: 2, pt: 0 }}>
-            <PlantSearch onPlantAdded={onPlantAdded} />
+            <PlantSearch 
+              onPlantAdded={onPlantAdded} 
+              sections={sections}
+            />
           </Box>
           {/* Aggregated plant type list (with counts and grid/list toggle) */}
           <Box sx={{ p: 2, pt: 0, flexGrow: 1, minHeight: 0, maxHeight: 'calc(100vh - 350px)', overflowY: 'auto' }}>

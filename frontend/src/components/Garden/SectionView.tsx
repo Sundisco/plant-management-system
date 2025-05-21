@@ -100,9 +100,9 @@ export const SectionView: React.FC<SectionViewProps> = ({
     if (!editingSection) return;
 
     try {
-      const updatedSection = await renameSection(editingSection.id, newName);
+      const updatedSection = await renameSection(editingSection.id, newName, editingSection.glyph);
       const updatedSections = sections.map(s => 
-        s.id === editingSection.id ? updatedSection : s
+        s.id === editingSection.id ? (updatedSection as unknown as Section) : s
       );
       onSectionUpdate(updatedSections);
       setEditingSection(null);
