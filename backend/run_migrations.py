@@ -55,7 +55,7 @@ def run_migrations():
         # Test database connection before running migrations
         try:
             from sqlalchemy import create_engine
-            engine = create_engine(database_url)
+            engine = create_engine(database_url, connect_args={"connect_timeout": 10})
             with engine.connect() as conn:
                 logger.info("Successfully connected to database")
         except Exception as e:
