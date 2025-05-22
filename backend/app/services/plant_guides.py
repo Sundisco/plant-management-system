@@ -26,6 +26,9 @@ def get_guides_for_plant(db: Session, plant_id: int, skip: int = 0, limit: int =
         .limit(limit)\
         .all()
     
+    if not guides:
+        return []
+    
     # Create a serialized version of the guides
     serialized_guides = []
     for guide in guides:
@@ -41,8 +44,8 @@ def get_guides_for_plant(db: Session, plant_id: int, skip: int = 0, limit: int =
             plant_dict = {
                 "id": guide.plant.id,
                 "common_name": guide.plant.common_name,
-                "scientific_name": guide.plant.scientific_name,
-                "other_names": guide.plant.other_names,
+                "scientific_name": guide.plant.scientific_name or [],
+                "other_names": guide.plant.other_names or [],
                 "family": guide.plant.family,
                 "type": guide.plant.type,
                 "description": guide.plant.description,
