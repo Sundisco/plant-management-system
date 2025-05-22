@@ -6,15 +6,20 @@ interface ApiResponse<T> {
   status: number;
 }
 
+const BACKEND_URL = import.meta.env.VITE_API_URL || 'https://1cff-89-150-165-188.ngrok-free.app';
+
 export async function apiRequest<T>(
   url: string,
   options: RequestInit = {},
   timeout: number = API_TIMEOUTS.DEFAULT
 ): Promise<ApiResponse<T>> {
   try {
+    // Ensure URL is absolute
+    const fullUrl = url.startsWith('http') ? url : `${BACKEND_URL}${url}`;
+    
     // Log the full request details
     console.log('=== API Request Debug ===');
-    console.log('URL:', url);
+    console.log('URL:', fullUrl);
     console.log('Method:', options.method || 'GET');
     console.log('Headers:', {
       'Content-Type': 'application/json',
@@ -27,7 +32,7 @@ export async function apiRequest<T>(
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-    const response = await fetch(url, {
+    const response = await fetch(fullUrl, {
       ...options,
       signal: controller.signal,
       headers: {
