@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { API_ENDPOINTS } from '../config';
 import { Tabs, Tab, Box, Typography } from '@mui/material';
+import { api } from '../utils/api';
 
 interface PlantGuide {
   id: number;
@@ -19,23 +20,36 @@ const categories: { key: PlantGuide['type']; label: string }[] = [
   { key: 'pruning', label: 'Pruning' },
 ];
 
-const PlantGuidesTabsComponent: React.FC<PlantGuidesTabsProps> = ({ plantId }) => {
+const PlantGuidesTabs: React.FC<PlantGuidesTabsProps> = ({ plantId }) => {
   const [guides, setGuides] = useState<PlantGuide[]>([]);
   const [selected, setSelected] = useState<PlantGuide['type']>('watering');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setLoading(true);
-    setError(null);
-    fetch(`/api/plant_guides/plant/${plantId}`)
-      .then(res => {
-        if (!res.ok) throw new Error('Failed to fetch plant guides');
-        return res.json();
-      })
-      .then(setGuides)
-      .catch(err => setError(err.message))
-      .finally(() => setLoading(false));
+    const fetchGuides = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const { data, error } = await api.get<PlantGuide[]>(`/api/plant_guides/plant/${plantId}`);
+        
+        if (error) {
+          throw new Error(error);
+        }
+        
+        if (!data) {
+          throw new Error('No data received from server');
+        }
+        
+        setGuides(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch plant guides');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchGuides();
   }, [plantId]);
 
   const guide = guides.find(g => g.type === selected);
@@ -75,4 +89,4 @@ const PlantGuidesTabsComponent: React.FC<PlantGuidesTabsProps> = ({ plantId }) =
   );
 };
 
-export default PlantGuidesTabsComponent; 
+export default PlantGuidesTabs; 
