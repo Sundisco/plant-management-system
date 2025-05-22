@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { Plant } from '../types/Plant';
 import { API_ENDPOINTS } from '../config';
+import { api } from '../utils/api';
 
 interface GardenContextType {
   plants: Plant[];
@@ -22,12 +23,17 @@ export const GardenProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const refreshPlants = useCallback(async () => {
     try {
       console.log('Fetching plants from:', `${API_ENDPOINTS.USER_PLANTS(1)}?limit=50`);
-      const response = await fetch(`${API_ENDPOINTS.USER_PLANTS(1)}?limit=50`);
-      console.log('Plants response status:', response.status);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch plants: ${response.status} ${response.statusText}`);
+      const { data, error, status } = await api.get<Plant[]>(`${API_ENDPOINTS.USER_PLANTS(1)}?limit=50`);
+      console.log('Plants response status:', status);
+      
+      if (error) {
+        throw new Error(`Failed to fetch plants: ${error}`);
       }
-      const data = await response.json();
+      
+      if (!data) {
+        throw new Error('No data received from server');
+      }
+      
       console.log('Plants data received:', data);
       setPlants(data);
       setLastUpdated(new Date());

@@ -31,7 +31,7 @@ app = FastAPI(
 ALLOWED_ORIGINS = [
     "http://localhost:5173",  # Local development
     "https://plant-management-frontend.onrender.com",  # Production frontend
-    "https://5d86-89-150-165-205.ngrok-free.app",  # Current ngrok URL
+    "https://1cff-89-150-165-188.ngrok-free.app",  # Current ngrok URL
     "http://localhost:3000",  # Local serve
     "http://localhost:10000",  # Render serve
     "*"  # Allow all origins temporarily for debugging
@@ -43,7 +43,17 @@ app.add_middleware(
     allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allow_headers=["*"],
+    allow_headers=[
+        "Content-Type",
+        "Accept",
+        "Authorization",
+        "X-Requested-With",
+        "ngrok-skip-browser-warning",
+        "Access-Control-Allow-Origin",
+        "Access-Control-Allow-Headers",
+        "Access-Control-Allow-Methods",
+        "Access-Control-Allow-Credentials",
+    ],
     expose_headers=["*"],
     max_age=3600,
 )

@@ -11,6 +11,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import * as sectionsApi from '../../utils/sectionsApi';
 import WateringSchedule from '../WateringSchedule';
 import { useGarden } from '../../contexts/GardenContext';
+import { api } from '../../utils/api';
 
 interface Section {
   id: number;
@@ -142,8 +143,9 @@ export function Garden({ userId = 1 }: GardenProps) {
     const newSection = destination.droppableId === UNASSIGNED_DROPPABLE_ID ? null : destination.droppableId;
 
     const draggedPlant = plants.find(p => p.id === plantId);
-    if (draggedPlant) {
-      // Section-based DnD logic here
+    if (!draggedPlant) {
+      console.error('Plant not found:', plantId);
+      return;
     }
 
     console.log('Assigning plant', plantId, 'to section', newSection);
@@ -154,31 +156,29 @@ export function Garden({ userId = 1 }: GardenProps) {
       return;
     }
 
-    console.log('Updating plant section:', {
-      url: `${API_ENDPOINTS.BASE_URL}${API_ENDPOINTS.PLANT_SECTION(actualUserId, plantId)}`,
-      payload: { section: newSection }
-    });
-
     try {
-      const response = await fetch(`${API_ENDPOINTS.BASE_URL}${API_ENDPOINTS.PLANT_SECTION(actualUserId, plantId)}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ section: newSection }),
-      });
+      // Optimistically update the UI
+      const updatedPlants = plants.map((p: Plant) => 
+        p.id === plantId ? { ...p, section: newSection } : p
+      );
+      setPlants(updatedPlants);
 
-      if (!response.ok) {
-        alert(`Failed to update section: ${response.statusText}`);
-        throw new Error(`Failed to update section: ${response.statusText}`);
+      // Make the API call
+      const { error } = await api.put(
+        `${API_ENDPOINTS.PLANT_SECTION(actualUserId, plantId)}`,
+        { section: newSection }
+      );
+
+      if (error) {
+        // Revert the optimistic update if the API call fails
+        setPlants(plants);
+        throw new Error(error);
       }
 
-      setTimeout(() => {
-        const updatedPlants = plants.map((p: Plant) => 
-          p.id === plantId ? { ...p, section: newSection } : p
-        );
-        setPlants([...updatedPlants]);
-      }, 100);
+      // Refresh the watering schedule after successful section update
+      if (typeof refreshPlants === 'function') {
+        refreshPlants();
+      }
     } catch (error) {
       console.error('Error updating section:', error);
       setError(error instanceof Error ? error.message : 'Failed to update section');

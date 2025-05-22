@@ -4,6 +4,7 @@ import { format, addDays, isAfter, isBefore, differenceInDays } from 'date-fns';
 import { API_ENDPOINTS } from '../config';
 import { Plant } from '../types/Plant';
 import { PlantDetails } from './Garden/PlantDetails';
+import { api } from '../utils/api';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import WaterDropIcon from '@mui/icons-material/WaterDrop';
 import { useGarden } from '../contexts/GardenContext';
@@ -69,8 +70,39 @@ interface DaySchedule {
 }
 
 interface WateringScheduleResponse {
-  schedule: DaySchedule[];
-  last_updated: string;
+  schedule: Array<{
+    date: string;
+    sections: Array<{
+      section: string;
+      groups: Array<{
+        plants: Array<{
+          plant_id: number;
+          plant_name: string;
+          image_url?: string;
+          watering_info: {
+            frequency_days: number;
+            depth_mm: number;
+            volume_feet: number;
+          };
+          last_watered?: string;
+          is_watered: boolean;
+          weather_adjusted: boolean;
+          weather_info: {
+            is_adjusted: boolean;
+            original_date: string | null;
+          };
+        }>;
+      }>;
+    }>;
+    weather?: WeatherData;
+  }>;
+}
+
+interface ScheduleData {
+  id: number;
+  scheduled_date: string;
+  completed: boolean;
+  completion_timestamp: string | null;
 }
 
 interface WateringSchedule {
@@ -286,15 +318,25 @@ const WateringSchedule: React.FC<WateringScheduleProps> = ({ sectionId, sections
   // Add a ref to track schedule data changes
   const scheduleDataRef = useRef<WateringSchedule[]>([]);
 
-  // Update the refreshSchedule function
+  // Add a ref to track if we need to refresh
+  const needsRefreshRef = useRef(false);
+
+  // Update the refreshSchedule function to be more efficient
   const refreshSchedule = useCallback(async () => {
     try {
       setLoading(true);
       const userId = 1; // TODO: Get from auth context
       console.log('Refreshing watering schedule for user:', userId);
-      const response = await fetch(`${API_ENDPOINTS.BASE_URL}/api/watering-schedule/watering-schedule/user/${userId}`);
-      const data: WateringScheduleResponse = await response.json();
-      console.log('Raw API Response:', data);
+      
+      const { data, error } = await api.get<WateringScheduleResponse>(`${API_ENDPOINTS.BASE_URL}/api/watering-schedule/watering-schedule/user/${userId}`);
+      
+      if (error) {
+        throw new Error(error);
+      }
+      
+      if (!data) {
+        throw new Error('No data received from server');
+      }
       
       // Store the raw schedule data
       setRawScheduleData(data);
@@ -304,11 +346,8 @@ const WateringSchedule: React.FC<WateringScheduleProps> = ({ sectionId, sections
         const transformedData: WateringSchedule[] = [];
         
         data.schedule.forEach(daySchedule => {
-          console.log('Processing day schedule:', daySchedule.date);
           daySchedule.sections.forEach(section => {
-            console.log('Processing section:', section.section);
             section.groups.forEach(group => {
-              console.log('Processing group:', group);
               group.plants.forEach(plant => {
                 // Find the section name from the sections prop
                 const sectionInfo = sections.find(s => s.section_id === section.section);
@@ -328,14 +367,11 @@ const WateringSchedule: React.FC<WateringScheduleProps> = ({ sectionId, sections
                   weather_info: plant.weather_info
                 };
 
-                // Add last_watered if it exists
                 if (plant.last_watered) {
                   plantData.last_watered = plant.last_watered;
                 }
 
-                // Add to transformed data
                 transformedData.push(plantData);
-                console.log('Added plant to schedule:', plantData);
               });
             });
           });
@@ -345,34 +381,29 @@ const WateringSchedule: React.FC<WateringScheduleProps> = ({ sectionId, sections
         transformedData.sort((a, b) => 
           new Date(a.next_watering).getTime() - new Date(b.next_watering).getTime()
         );
-
-        console.log('Final transformed schedule data:', transformedData);
+        
         // Only update if we have data or if we don't have any local data
         if (transformedData.length > 0 || scheduleDataRef.current.length === 0) {
           setScheduleData(transformedData);
           scheduleDataRef.current = transformedData;
         }
-      } else {
-        console.log('No schedule data in response or invalid format');
-        // Don't clear the schedule data if we have local changes
-        if (scheduleDataRef.current.length === 0) {
-          setScheduleData([]);
-        }
       }
       setError(null);
-      } catch (err) {
+    } catch (err) {
       console.error('Error refreshing watering schedule:', err);
-      // Don't clear the schedule data on error
-        setError(err instanceof Error ? err.message : 'An error occurred');
-      } finally {
-        setLoading(false);
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+      needsRefreshRef.current = false;
     }
   }, [sections]);
 
   // Create a debounced version of refreshSchedule
   const debouncedRefresh = useCallback(
     debounce(() => {
-      refreshSchedule();
+      if (needsRefreshRef.current) {
+        refreshSchedule();
+      }
     }, 1000),
     [refreshSchedule]
   );
@@ -382,22 +413,22 @@ const WateringSchedule: React.FC<WateringScheduleProps> = ({ sectionId, sections
     // Initial refresh
     refreshSchedule();
 
-    // Set up periodic refresh (every 5 minutes instead of 30 seconds)
+    // Set up periodic refresh (every 5 minutes)
     const interval = setInterval(() => {
-      console.log('Periodic schedule refresh');
+      needsRefreshRef.current = true;
       debouncedRefresh();
     }, 300000); // 5 minutes
 
     return () => clearInterval(interval);
   }, [debouncedRefresh]);
 
-  // Refresh when garden plants change - make this immediate
+  // Refresh when garden plants change
   useEffect(() => {
     if (lastUpdated) {
-      console.log('Garden plants updated, refreshing schedule immediately');
-      refreshSchedule(); // Call directly without debounce for immediate updates
+      needsRefreshRef.current = true;
+      debouncedRefresh();
     }
-  }, [lastUpdated, refreshSchedule]);
+  }, [lastUpdated, debouncedRefresh]);
 
   // Add effect to log schedule data changes
   useEffect(() => {
@@ -411,28 +442,26 @@ const WateringSchedule: React.FC<WateringScheduleProps> = ({ sectionId, sections
       console.log('Marking plant as watered:', plant);
       
       // First, get the current schedule ID
-      const scheduleResponse = await fetch(`${API_ENDPOINTS.BASE_URL}/api/watering-schedule/user/1/plant/${plant.plant_id}`, {
-        headers: {
-          'Accept': 'application/json',
-        },
-        credentials: 'include'
-      });
+      const { data: scheduleData, error: scheduleError } = await api.get<ScheduleData[]>(
+        `${API_ENDPOINTS.BASE_URL}/api/watering-schedule/user/1/plant/${plant.plant_id}`
+      );
       
-      if (!scheduleResponse.ok) {
-        throw new Error('Failed to fetch watering schedule');
+      if (scheduleError) {
+        throw new Error(scheduleError);
       }
-      const scheduleData = await scheduleResponse.json();
+      
+      if (!scheduleData) {
+        throw new Error('No schedule data received');
+      }
+      
       console.log('Schedule data for plant:', scheduleData);
       
       // Sort schedules by date and find the most recent uncompleted schedule
-      const sortedSchedules = scheduleData.sort((a: any, b: any) => 
+      const sortedSchedules = scheduleData.sort((a, b) => 
         new Date(b.scheduled_date).getTime() - new Date(a.scheduled_date).getTime()
       );
       
-      const currentSchedule = sortedSchedules.find((schedule: { 
-        scheduled_date: string;
-        completed: boolean;
-      }) => !schedule.completed);
+      const currentSchedule = sortedSchedules.find(schedule => !schedule.completed);
 
       if (!currentSchedule) {
         throw new Error('No active watering schedule found');
@@ -440,63 +469,78 @@ const WateringSchedule: React.FC<WateringScheduleProps> = ({ sectionId, sections
 
       console.log('Found schedule to update:', currentSchedule);
 
-      // Update the watering schedule with batch_update flag
-      const response = await fetch(`${API_ENDPOINTS.BASE_URL}/api/watering-schedule/${currentSchedule.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ 
-          completed: true,
-          completion_timestamp: new Date().toISOString(),
-          batch_update: true  // Add this flag to prevent immediate weather adjustments
-        }),
-      });
+      // Calculate the next watering date
+      const nextWateringDate = addDays(new Date(today), plant.watering_frequency);
+      const nextWateringDateStr = format(nextWateringDate, 'yyyy-MM-dd');
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to update watering date');
-      }
-
-      console.log('Successfully updated current schedule');
-
-      // Update local state immediately to show the change
+      // Update local state immediately
       setScheduleData(prevData => {
         const updatedData = prevData.map(p => {
-          if (p.plant_id === plant.plant_id && p.next_watering === today) {
-            return {
-              ...p,
-              last_watered: today,
-              is_watered: true
-            };
+          if (p.plant_id === plant.plant_id) {
+            if (p.next_watering === today) {
+              // Update the current watering entry
+              return {
+                ...p,
+                last_watered: today,
+                is_watered: true
+              };
+            } else if (p.next_watering === nextWateringDateStr) {
+              // Update the next watering entry if it exists
+              return {
+                ...p,
+                date: nextWateringDateStr,
+                next_watering: nextWateringDateStr
+              };
+            }
           }
           return p;
         });
-        scheduleDataRef.current = updatedData;
-        return updatedData;
+
+        // If there's no next watering entry, add it
+        if (!updatedData.some(p => p.plant_id === plant.plant_id && p.next_watering === nextWateringDateStr)) {
+          updatedData.push({
+            ...plant,
+            date: nextWateringDateStr,
+            next_watering: nextWateringDateStr,
+            last_watered: undefined,
+            is_watered: false
+          });
+        }
+
+        // Sort by next_watering date
+        return updatedData.sort((a, b) => 
+          new Date(a.next_watering).getTime() - new Date(b.next_watering).getTime()
+        );
       });
 
-      // Show success feedback
+      // Update the watering schedule with batch_update flag
+      const { error: updateError } = await api.put(
+        `${API_ENDPOINTS.BASE_URL}/api/watering-schedule/${currentSchedule.id}`,
+        { 
+          completed: true,
+          completion_timestamp: new Date().toISOString(),
+          batch_update: true  // Add this flag to prevent immediate weather adjustments
+        }
+      );
+      
+      if (updateError) {
+        throw new Error(updateError);
+      }
+
+      // Show success message
       setSnackbar({
         open: true,
-        message: `Successfully marked ${plant.plant_name} as watered`,
+        message: `Marked ${plant.plant_name} as watered`,
         severity: 'success'
       });
 
-      // Close the popover after successful update
+      // Close the popover
       handleClosePopover();
-
-      // Refresh the schedule data after a short delay to allow for batch processing
-      setTimeout(() => {
-        refreshSchedule();
-      }, 1000);
     } catch (error) {
       console.error('Error marking plant as watered:', error);
       setSnackbar({
         open: true,
-        message: error instanceof Error ? error.message : 'Failed to update watering status',
+        message: error instanceof Error ? error.message : 'Failed to mark plant as watered',
         severity: 'error'
       });
     }
@@ -508,27 +552,27 @@ const WateringSchedule: React.FC<WateringScheduleProps> = ({ sectionId, sections
       console.log('Resetting watering status for plant:', plant);
       
       // Get the current schedule
-      const scheduleResponse = await fetch(`${API_ENDPOINTS.BASE_URL}/api/watering-schedule/user/1/plant/${plant.plant_id}`, {
-        headers: {
-          'Accept': 'application/json',
-        },
-        credentials: 'include'
-      });
+      const { data: scheduleData, error: scheduleError } = await api.get<ScheduleData[]>(
+        `${API_ENDPOINTS.BASE_URL}/api/watering-schedule/user/1/plant/${plant.plant_id}`
+      );
       
-      if (!scheduleResponse.ok) {
-        throw new Error('Failed to fetch watering schedule');
+      if (scheduleError) {
+        throw new Error(scheduleError);
       }
-      const scheduleData = await scheduleResponse.json();
+      
+      if (!scheduleData) {
+        throw new Error('No schedule data received');
+      }
       
       // Find the completed schedule for today and the future schedule
       const today = format(new Date(), 'yyyy-MM-dd');
-      const completedSchedule = scheduleData.find((schedule: any) => 
+      const completedSchedule = scheduleData.find(schedule => 
         schedule.completed && 
         schedule.completion_timestamp && 
         format(new Date(schedule.completion_timestamp), 'yyyy-MM-dd') === today
       );
 
-      const futureSchedule = scheduleData.find((schedule: any) => 
+      const futureSchedule = scheduleData.find(schedule => 
         !schedule.completed && 
         format(new Date(schedule.scheduled_date), 'yyyy-MM-dd') > today
       );
@@ -538,35 +582,25 @@ const WateringSchedule: React.FC<WateringScheduleProps> = ({ sectionId, sections
       }
 
       // Update the completed schedule to mark as not completed
-      const response = await fetch(`${API_ENDPOINTS.BASE_URL}/api/watering-schedule/${completedSchedule.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ 
+      const { error: updateError } = await api.put(
+        `${API_ENDPOINTS.BASE_URL}/api/watering-schedule/${completedSchedule.id}`,
+        { 
           completed: false,
           completion_timestamp: null
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to reset watering status');
+        }
+      );
+      
+      if (updateError) {
+        throw new Error(updateError);
       }
 
       // Delete the future schedule if it exists
       if (futureSchedule) {
-        const deleteResponse = await fetch(`${API_ENDPOINTS.BASE_URL}/api/watering-schedule/${futureSchedule.id}`, {
-          method: 'DELETE',
-          headers: {
-            'Accept': 'application/json',
-          },
-          credentials: 'include'
-        });
-
-        if (!deleteResponse.ok) {
+        const { error: deleteError } = await api.delete(
+          `${API_ENDPOINTS.BASE_URL}/api/watering-schedule/${futureSchedule.id}`
+        );
+        
+        if (deleteError) {
           console.warn('Failed to delete future schedule, but continuing with reset');
         }
       }
@@ -725,12 +759,17 @@ const WateringSchedule: React.FC<WateringScheduleProps> = ({ sectionId, sections
   const handlePlantClick = async (plant: WateringSchedule) => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_ENDPOINTS.PLANTS}/${plant.plant_id}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch plant details');
+      const { data, error } = await api.get<Plant>(`${API_ENDPOINTS.PLANTS}/${plant.plant_id}`);
+      
+      if (error) {
+        throw new Error(error);
       }
-      const data = await response.json();
-      console.log('Fetched plant data:', data); // Debug log
+      
+      if (!data) {
+        throw new Error('No plant data received');
+      }
+      
+      console.log('Fetched plant data:', data);
       setSelectedPlant(data);
       handleClosePopover();
     } catch (error) {

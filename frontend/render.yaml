@@ -9,7 +9,7 @@ services:
       - key: NODE_VERSION
         value: 20.11.1
       - key: VITE_API_URL
-        value: https://5d86-89-150-165-205.ngrok-free.app
+        value: https://1cff-89-150-165-188.ngrok-free.app
       - key: PORT
         value: 10000
       - key: RENDER

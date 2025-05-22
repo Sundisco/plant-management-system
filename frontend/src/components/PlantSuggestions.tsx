@@ -23,7 +23,7 @@ import {
 } from '@mui/material';
 import { useGarden } from '../contexts/GardenContext';
 import { Plant } from '../types/Plant';
-import { API_ENDPOINTS } from '../config/api';
+import { API_ENDPOINTS } from '../config.ts';
 import SearchIcon from '@mui/icons-material/Search';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import ClearIcon from '@mui/icons-material/Clear';

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Box, Paper, Typography, Tooltip, CircularProgress, Table, TableBody, TableCell, TableHead, TableRow, Select, MenuItem, Dialog, DialogTitle, DialogContent, IconButton, List, ListItem, ListItemText, ListItemAvatar, Avatar } from '@mui/material';
 import { Plant } from '../types/Plant';
 import { API_ENDPOINTS } from '../config';
+import { api } from '../utils/api';
 import CloseIcon from '@mui/icons-material/Close';
 import { PlantDetails } from './Garden/PlantDetails';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -39,6 +40,10 @@ interface PruningData {
   details: {
     [key: string]: PlantDetail[];
   };
+}
+
+interface PruningScheduleResponse {
+  pruning_schedule: PruningData[];
 }
 
 const SEASON_COLORS = {
@@ -112,8 +117,16 @@ export const PruningSchedule: React.FC<PruningScheduleProps> = ({
       try {
         setLoading(true);
         const userId = 1;
-        const pruningResponse = await fetch(API_ENDPOINTS.PRUNING(userId));
-        const data = await pruningResponse.json();
+        const { data, error } = await api.get<PruningScheduleResponse>(API_ENDPOINTS.PRUNING(userId));
+        
+        if (error) {
+          throw new Error(error);
+        }
+        
+        if (!data?.pruning_schedule) {
+          throw new Error('No pruning schedule data received');
+        }
+        
         console.log('[PruningSchedule] Fetched data:', data.pruning_schedule);
         setPruningData(data.pruning_schedule);
         setError(null);
