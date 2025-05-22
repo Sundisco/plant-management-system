@@ -34,7 +34,6 @@ ALLOWED_ORIGINS = [
     "https://1cff-89-150-165-188.ngrok-free.app",  # Current ngrok URL
     "http://localhost:3000",  # Local serve
     "http://localhost:10000",  # Render serve
-    "*"  # Allow all origins temporarily for debugging
 ]
 
 # Add CORS middleware with explicit configuration
