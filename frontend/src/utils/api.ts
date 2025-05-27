@@ -6,7 +6,7 @@ interface ApiResponse<T> {
   status: number;
 }
 
-const BACKEND_URL = import.meta.env.VITE_API_URL || 'https://1cff-89-150-165-188.ngrok-free.app';
+const BACKEND_URL = import.meta.env.VITE_API_URL || 'https://1736-89-150-165-187.ngrok-free.app';
 
 export async function apiRequest<T>(
   url: string,

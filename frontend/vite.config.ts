@@ -8,13 +8,13 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'https://1cff-89-150-165-188.ngrok-free.app',
+        target: ' https://1736-89-150-165-187.ngrok-free.app',
         changeOrigin: true,
         secure: false,
         ws: true
       },
       '/watering-schedule': {
-        target: 'https://1cff-89-150-165-188.ngrok-free.app',
+        target: ' https://1736-89-150-165-187.ngrok-free.app',
         changeOrigin: true,
         secure: false
       }
@@ -36,13 +36,13 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'https://1cff-89-150-165-188.ngrok-free.app',
+        target: 'https://1736-89-150-165-187.ngrok-free.app',
         changeOrigin: true,
         secure: false,
         ws: true
       },
       '/watering-schedule': {
-        target: 'https://1cff-89-150-165-188.ngrok-free.app',
+        target: 'https://1736-89-150-165-187.ngrok-free.app',
         changeOrigin: true,
         secure: false
       }

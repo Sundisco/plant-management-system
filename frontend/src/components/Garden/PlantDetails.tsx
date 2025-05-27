@@ -4,8 +4,6 @@ import CloseIcon from '@mui/icons-material/Close';
 import { Plant } from '../../types/Plant';
 import { Section } from '../../types/Section';
 import PlantGuidesTabs from '../PlantGuidesTabs/PlantGuidesTabs';
-import { format, isBefore, differenceInDays } from 'date-fns';
-import WaterDropIcon from '@mui/icons-material/WaterDrop';
 import { useTheme } from '@mui/material/styles';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 
@@ -13,10 +11,10 @@ interface PlantDetailsProps {
   plant: Plant | null;
   open: boolean;
   onClose: () => void;
-  sections: Section[];
+  sections?: Section[];
 }
 
-export const PlantDetails: React.FC<PlantDetailsProps> = ({ plant, open, onClose, sections }) => {
+export const PlantDetails: React.FC<PlantDetailsProps> = ({ plant, open, onClose, sections = [] }) => {
   const theme = useTheme();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,49 +26,15 @@ export const PlantDetails: React.FC<PlantDetailsProps> = ({ plant, open, onClose
     }
   }, [plant]);
 
-  const getWateringStatus = () => {
-    if (!plantData?.last_watered) return 'Never watered';
-    const lastWatered = new Date(plantData.last_watered);
-    const nextWatering = plantData.next_watering ? new Date(plantData.next_watering) : null;
-    const today = new Date();
-
-    if (!nextWatering) return {
-      status: 'Not scheduled',
-      color: theme.palette.text.secondary,
-      days: 0
-    };
-
-    if (isBefore(nextWatering, today)) {
-      return {
-        status: 'Overdue',
-        color: theme.palette.error.main,
-        days: differenceInDays(today, nextWatering)
-      };
-    }
-
-    const daysUntilWatering = differenceInDays(nextWatering, today);
-    if (daysUntilWatering <= 2) {
-      return {
-        status: 'Due soon',
-        color: theme.palette.warning.main,
-        days: daysUntilWatering
-      };
-    }
-
-    return {
-      status: 'On track',
-      color: theme.palette.success.main,
-      days: daysUntilWatering
-    };
-  };
-
-  const wateringStatus = getWateringStatus();
-
   const getSectionName = (sectionId: string | undefined | null) => {
     if (!sectionId) return 'Unassigned';
     const section = sections.find(s => s.section_id === sectionId);
     return section ? section.name : 'Unassigned';
   };
+
+  if (!plantData) {
+    return null;
+  }
 
   return (
     <Dialog 
@@ -98,15 +62,15 @@ export const PlantDetails: React.FC<PlantDetailsProps> = ({ plant, open, onClose
               mb: 0.5,
               color: 'text.primary'
             }}>
-              {plantData?.common_name}
+              {plantData.common_name}
             </Typography>
             <Typography variant="subtitle1" sx={{ 
               color: 'text.secondary',
               fontStyle: 'italic'
             }}>
-              {plantData?.scientific_name?.[0]}
+              {plantData.scientific_name?.[0]}
             </Typography>
-            {plantData?.other_names && plantData.other_names.length > 0 && (
+            {plantData.other_names && plantData.other_names.length > 0 && (
               <Typography variant="body2" sx={{ 
                 color: 'text.secondary',
                 mt: 0.5
@@ -141,8 +105,8 @@ export const PlantDetails: React.FC<PlantDetailsProps> = ({ plant, open, onClose
                 boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
               }}>
                 <img 
-                  src={plantData?.image_url} 
-                  alt={plantData?.common_name}
+                  src={plantData.image_url} 
+                  alt={plantData.common_name}
                   style={{ 
                     width: '100%', 
                     height: '300px', 
@@ -167,7 +131,7 @@ export const PlantDetails: React.FC<PlantDetailsProps> = ({ plant, open, onClose
                 >
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                     <Chip 
-                      label={plantData?.type} 
+                      label={plantData.type} 
                       size="small"
                       sx={{ 
                         bgcolor: 'rgba(76, 175, 80, 0.85)',
@@ -181,7 +145,7 @@ export const PlantDetails: React.FC<PlantDetailsProps> = ({ plant, open, onClose
                         }
                       }}
                     />
-                    {plantData?.edible_fruit && (
+                    {plantData.edible_fruit && (
                       <Chip 
                         label="Edible Fruit" 
                         size="small"
@@ -198,7 +162,7 @@ export const PlantDetails: React.FC<PlantDetailsProps> = ({ plant, open, onClose
                         }}
                       />
                     )}
-                    {plantData?.cycle === 'perennial' && (
+                    {plantData.cycle === 'perennial' && (
                       <Chip 
                         label="Perennial" 
                         size="small"
@@ -220,7 +184,7 @@ export const PlantDetails: React.FC<PlantDetailsProps> = ({ plant, open, onClose
               </Box>
               
               {/* Description */}
-              {plantData?.description && (
+              {plantData.description && (
                 <Box sx={{ 
                   p: 2,
                   borderRadius: '12px',
@@ -266,7 +230,7 @@ export const PlantDetails: React.FC<PlantDetailsProps> = ({ plant, open, onClose
                 </Typography>
                 
                 {/* Sunlight Requirements */}
-                {plantData?.sunlight && plantData.sunlight.length > 0 && (
+                {plantData.sunlight && plantData.sunlight.length > 0 && (
                   <Box sx={{ mb: 1.5 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <Typography variant="subtitle2" sx={{ 
@@ -301,7 +265,7 @@ export const PlantDetails: React.FC<PlantDetailsProps> = ({ plant, open, onClose
                 )}
 
                 {/* Watering */}
-                {plantData?.watering && (
+                {plantData.watering && (
                   <Box sx={{ mb: 1.5 }}>
                     <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
                       <Typography variant="subtitle2" sx={{ 
@@ -323,8 +287,8 @@ export const PlantDetails: React.FC<PlantDetailsProps> = ({ plant, open, onClose
                 )}
 
                 {/* Hardiness Zone */}
-                {plantData?.hardiness_zone && (
-                  <Box>
+                {plantData.hardiness_zone && (
+                  <Box sx={{ mb: 1.5 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <Typography variant="subtitle2" sx={{ 
                         color: 'text.secondary', 
@@ -333,9 +297,21 @@ export const PlantDetails: React.FC<PlantDetailsProps> = ({ plant, open, onClose
                       }}>
                         Hardiness:
                       </Typography>
-                      <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                        {plantData.hardiness_zone}
-                      </Typography>
+                      <Chip
+                        label={`Zone ${plantData.hardiness_zone}`}
+                        size="small"
+                        sx={{ 
+                          bgcolor: 'rgba(156, 39, 176, 0.85)',
+                          color: 'white',
+                          fontWeight: 500,
+                          fontSize: '0.75rem',
+                          height: '24px',
+                          backdropFilter: 'blur(4px)',
+                          '& .MuiChip-label': {
+                            px: 1
+                          }
+                        }}
+                      />
                     </Box>
                   </Box>
                 )}
@@ -343,7 +319,7 @@ export const PlantDetails: React.FC<PlantDetailsProps> = ({ plant, open, onClose
             </Box>
           </Grid>
 
-          {/* Right Column - Additional Info */}
+          {/* Right Column - Details and Guides */}
           <Grid item xs={12} md={6}>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {/* Plant Details */}
@@ -374,7 +350,7 @@ export const PlantDetails: React.FC<PlantDetailsProps> = ({ plant, open, onClose
                       Type:
                     </Typography>
                     <Chip
-                      label={plantData?.type}
+                      label={plantData.type}
                       size="small"
                       sx={{ 
                         bgcolor: 'rgba(76, 175, 80, 0.85)',
@@ -399,63 +375,28 @@ export const PlantDetails: React.FC<PlantDetailsProps> = ({ plant, open, onClose
                     }}>
                       Section:
                     </Typography>
-                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                      {getSectionName(plantData?.section)}
-                    </Typography>
+                    <Chip
+                      icon={<LocationOnIcon sx={{ color: 'white' }} />}
+                      label={getSectionName(plantData.section)}
+                      size="small"
+                      sx={{ 
+                        bgcolor: 'rgba(25, 118, 210, 0.85)',
+                        color: 'white',
+                        fontWeight: 500,
+                        fontSize: '0.75rem',
+                        height: '24px',
+                        backdropFilter: 'blur(4px)',
+                        '& .MuiChip-label': {
+                          px: 1
+                        }
+                      }}
+                    />
                   </Box>
-
-                  {/* Growth Rate */}
-                  {plantData?.growth_rate && (
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography variant="subtitle2" sx={{ 
-                        color: 'text.secondary', 
-                        fontWeight: 600,
-                        minWidth: '100px'
-                      }}>
-                        Growth Rate:
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                        {plantData.growth_rate}
-                      </Typography>
-                    </Box>
-                  )}
-
-                  {/* Maintenance */}
-                  {plantData?.maintenance && (
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography variant="subtitle2" sx={{ 
-                        color: 'text.secondary', 
-                        fontWeight: 600,
-                        minWidth: '100px'
-                      }}>
-                        Maintenance:
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                        {plantData.maintenance}
-                      </Typography>
-                    </Box>
-                  )}
-
-                  {/* Life Cycle */}
-                  {plantData?.cycle && plantData.cycle !== 'perennial' && (
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography variant="subtitle2" sx={{ 
-                        color: 'text.secondary', 
-                        fontWeight: 600,
-                        minWidth: '100px'
-                      }}>
-                        Life Cycle:
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                        {plantData.cycle}
-                      </Typography>
-                    </Box>
-                  )}
                 </Box>
               </Box>
 
               {/* Wildlife Attractions */}
-              {plantData?.attracts && plantData.attracts.length > 0 && (
+              {plantData.attracts && plantData.attracts.length > 0 && (
                 <Box sx={{ 
                   p: 2,
                   borderRadius: '12px',
@@ -496,26 +437,24 @@ export const PlantDetails: React.FC<PlantDetailsProps> = ({ plant, open, onClose
               )}
 
               {/* Plant Guides Tabs */}
-              {plantData?.id && (
-                <Box sx={{ 
-                  p: 2,
-                  borderRadius: '12px',
-                  bgcolor: 'background.paper',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+              <Box sx={{ 
+                p: 2,
+                borderRadius: '12px',
+                bgcolor: 'background.paper',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+              }}>
+                <Typography variant="h6" sx={{ 
+                  color: 'text.primary', 
+                  mb: 1.5,
+                  fontWeight: 600,
+                  borderBottom: '2px solid',
+                  borderColor: 'primary.main',
+                  pb: 0.5
                 }}>
-                  <Typography variant="h6" sx={{ 
-                    color: 'text.primary', 
-                    mb: 1.5,
-                    fontWeight: 600,
-                    borderBottom: '2px solid',
-                    borderColor: 'primary.main',
-                    pb: 0.5
-                  }}>
-                    Care Guides
-                  </Typography>
-                  <PlantGuidesTabs plantId={plantData.id} />
-                </Box>
-              )}
+                  Care Guides
+                </Typography>
+                <PlantGuidesTabs plantId={plantData.id} />
+              </Box>
             </Box>
           </Grid>
         </Grid>

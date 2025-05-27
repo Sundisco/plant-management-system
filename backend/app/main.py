@@ -31,9 +31,10 @@ app = FastAPI(
 ALLOWED_ORIGINS = [
     "http://localhost:5173",  # Local development
     "https://plant-management-frontend.onrender.com",  # Production frontend
-    "https://1cff-89-150-165-188.ngrok-free.app",  # Current ngrok URL
+    "https://1736-89-150-165-187.ngrok-free.app",  # Current ngrok URL
     "http://localhost:3000",  # Local serve
     "http://localhost:10000",  # Render serve
+    "https://*.onrender.com",  # Any Render subdomain
 ]
 
 # Add CORS middleware with explicit configuration
